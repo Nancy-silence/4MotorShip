@@ -27,7 +27,7 @@ class ASVEnv(gym.Env):
         self.interval = interval
         self.asv = ASV(self.interval)
         self.aim = MovePoint(self.target_trajectory)
-        self.playground_shape = (-0.1, 16, -0.1, 16)
+        self.playground_shape = (-0.1, 8, -0.1, 8)
 
         plt.ion()
         self.aim_his = [self.aim.position]
@@ -72,11 +72,11 @@ class ASVEnv(gym.Env):
         d = np.sum(np.power((asv_pos - aim_pos), 2))
         a = np.sum(np.power(self.asv.motor.data, 2))
         r = d + 1e-4 * a
-        r = np.exp(-r / 100) - 1
+        r = np.exp(-r / 1) - 1
         return r
 
     def get_reward_punish(self):
-        return -5
+        return -1
         
     def step(self, action):
         self.asv.motor = action

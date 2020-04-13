@@ -4,6 +4,7 @@
 from asv_env import ASVEnv
 import time
 from asv_agent import DDPG
+import numpy as np
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -40,11 +41,15 @@ def rl_loop(need_load=True):
 
             # reward = float(reward / 10)
 
+            # info = {
+            #     "cur_state": list(cur_state), "action": list(action),
+            #     "next_state": list(next_state), "reward": reward, "done": done
+            # }
             info = {
-                "cur_state": list(cur_state), "action": list(action),
-                "next_state": list(next_state), "reward": reward, "done": done
+                "ship": list(np.append(env.asv.position.data, env.asv.velocity.data)), "action": list(action),
+                "aim": list(env.aim.position.data), "reward": reward, "done": done
             }
-            # print(info, flush=True)
+            print(info, flush=True)
 
             cur_state = next_state
             cum_reward += reward

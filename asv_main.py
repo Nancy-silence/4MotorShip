@@ -41,7 +41,7 @@ def rl_loop(need_load=True):
     for e in range(START_EPISODE, MAX_EPISODE):
         cur_state = env.reset()
         cum_reward = 0
-        noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.1)
+        noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.05)
         agent.build_noise(0, 1 * noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
 
         for step in range(MAX_STEP):
@@ -55,17 +55,21 @@ def rl_loop(need_load=True):
             agent.add_step(cur_state, action, reward, done, next_state)
             agent.learn_batch()
 
+            # info = {
+            #     "cur_state": list(cur_state), "action": list(action),
+            #     "next_state": list(next_state), "reward": reward, "done": done
+            # }
             info = {
-                "cur_state": list(cur_state), "action": list(action),
-                "next_state": list(next_state), "reward": reward, "done": done
+                "ship": list(np.append(env.asv.position.data, env.asv.velocity.data)), "action": list(action),
+                "aim": list(env.aim.position.data), "reward": reward, "done": done
             }
-            # print(info, flush=True)
+            print(info, flush=True)
 
             cur_state = next_state
             cum_reward += reward
             counter += 1
             show_reward += reward
-            if counter % 100 == 0:
+            if counter % MAX_STEP == 0:
                 summary_writer.add_scalar('cum_reward', show_reward, counter)
                 show_reward = 0
 

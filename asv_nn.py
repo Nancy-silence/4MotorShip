@@ -21,7 +21,7 @@ class ASVActorNet(nn.Module):
 
         self.out = nn.Linear(50, n_actions)
         torch.nn.init.xavier_uniform_(self.out.weight.data, gain=1)
-        torch.nn.init.uniform_(self.out.bias.data, 0, 0.2)
+        torch.nn.init.uniform_(self.out.bias.data, 0, 0.5)
         if CUDA:
             self.bound = torch.FloatTensor([self.bound]).cuda()
         else:
@@ -47,16 +47,13 @@ class ASVCriticNet(nn.Module):
         super().__init__()
 
         self.fc1 = nn.Linear(n_states+n_actions, n_neurons)
-        # torch.nn.init.kaiming_uniform_(self.fc1.weight.data, a=0, mode='fan_in', nonlinearity='leaky_relu')
         self.fc1.weight.data.normal_(0, 0.1)
 
         self.fc2 = nn.Linear(n_neurons, 32)
-        # torch.nn.init.kaiming_uniform_(self.fc1.weight.data, a=0, mode='fan_in', nonlinearity='leaky_relu')
         self.fc2.weight.data.normal_(0, 0.1)
 
         self.out = nn.Linear(32, 1)
         # self.out.weight.data.normal_(0, 0.1)
-        torch.nn.init.xavier_uniform_(self.out.weight.data, gain=1)
 
     def forward(self, s, a):
         """
