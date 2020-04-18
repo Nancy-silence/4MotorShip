@@ -59,7 +59,12 @@
     # write_json('td_error.json', td_error)
     # write_json('loss_a.json', loss_a)
 
-import torch
-a = torch.load('models/param 70000 Episode.pth')
-print(a)
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.arange(0,20,0.1)
+y = []
+for i in x:
+    y.append(np.power(2, -i) - 1)
+plt.plot(x,y)
+plt.show()
 

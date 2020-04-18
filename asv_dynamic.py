@@ -2,10 +2,11 @@
 # coding=utf-8
 
 import numpy as np
+import math
 
 class Dim3Position(object):
     def __init__(self):
-        self.pos = np.array([0.0, 0.0, 0.0])
+        self.pos = np.array([0.0, 3.0, math.pi/4])
 
     @property
     def x(self):
@@ -147,7 +148,7 @@ class ASV(object):
         self.__motor.a1, self.__motor.a2, self.__motor.a3, self.__motor.a4 = motor 
 
     def reset_state(self):
-        self.__position.x, self.__position.y, self.__position.theta = 0, 0, 0
+        self.__position.x, self.__position.y, self.__position.theta = 0, 3, math.pi/4
         self.__velocity.u, self.__velocity.v, self.__velocity.r = 0, 0, 0
         self.motor = (0, 0, 0, 0)
         return self.__position, self.__velocity

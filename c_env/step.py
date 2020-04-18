@@ -14,7 +14,7 @@ class StructPointer(Structure):
 def step(cur_state, action):
 
     # 通过CDLL加载.so文件为python的module
-    sim = CDLL('./Sim.dll')
+    sim = CDLL('./Sim.so')
 
     # 通过标准方法将python list 转为 c 的数组
     pyarray = np.append(cur_state,action).tolist()
@@ -30,6 +30,16 @@ def step(cur_state, action):
 
     # 获取返回值中的array，取前6项为状态，注意.contents
     ret_array = result.contents.array[0:6]
+    # print(f'b_fai:{ret_array[2]}')
+    # 对φ角进行修正，到范围[-pi,pi]内
+    remainder_fai = ret_array[2] % (2 *math.pi)
+    if abs(remainder_fai) <= math.pi:
+        fai = remainder_fai
+    else:
+        fai = -(2 * math.pi - abs(remainder_fai)) if remainder_fai > 0 else 2 * math.pi - abs(remainder_fai)
+    ret_array[2] = fai
+    # print(f'fai:{ret_array[2]}')
+    # print('')
 
     # for param in ret_array:
     #     print(param)
