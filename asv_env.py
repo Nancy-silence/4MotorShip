@@ -55,9 +55,11 @@ class ASVEnv(gym.Env):
 
     def get_state(self):
         """获取当前环境状态，即目标点坐标及夹角与船只坐标及夹角的差值 & 速度"""
-        asv_pos = self.asv.position.data
-        aim_pos = self.aim.position
-        state = np.append(aim_pos - asv_pos, self.asv.velocity.data)
+        asv_pos = self.asv.position.data[0:2]
+        aim_pos = self.aim.position[0:2]
+        asv_theta = self.asv.position.theta
+        state = np.append(aim_pos - asv_pos, asv_theta)
+        state = np.append(state, self.asv.velocity.data)
         return state
 
     def get_done(self):
@@ -67,13 +69,13 @@ class ASVEnv(gym.Env):
         return False
         
     def get_reward(self):
-        asv_pos = self.asv.position.data
-        aim_pos = self.aim.position
-        d = np.sum(np.power((asv_pos - aim_pos), 2))
-        # a = np.sum(np.power(self.asv.motor.data, 2))
-        # r = d + 1e-4 * a
-        # print(d)
-        r = np.power(2, - 5 * d) - 1
+        asv_pos = self.asv.position.data[0:2]
+        aim_pos = self.aim.position[0:2]
+        d = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
+        # 计算艏向角和目标航向的夹角 del_theta
+        del_theta = abs(self.aim.position[2]-self.asv.position.theta) if abs(self.aim.position[2]-self.asv.position.theta) < math.pi\
+            else math.pi * 2 - abs(self.aim.position[2]-self.asv.position.theta)
+        r = np.power(2, - 5 * (d + del_theta)) - 1
         return r
 
     def get_reward_punish(self):
