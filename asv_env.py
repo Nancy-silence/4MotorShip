@@ -33,7 +33,7 @@ class ASVEnv(gym.Env):
         self.aim_his = [self.aim.position]
         self.asv_his = [self.asv.position.data[0:2]]
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(6,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(7,))
         self.action_space = spaces.Box(low=-10, high=10, shape=(4,))
     
     def reset(self):
@@ -57,8 +57,8 @@ class ASVEnv(gym.Env):
         """获取当前环境状态，即目标点坐标及夹角与船只坐标及夹角的差值 & 速度"""
         asv_pos = self.asv.position.data[0:2]
         aim_pos = self.aim.position[0:2]
-        asv_theta = self.asv.position.theta
-        state = np.append(aim_pos - asv_pos, asv_theta)
+        theta = np.array([self.asv.position.theta, self.aim.position[2]])
+        state = np.append(aim_pos - asv_pos, theta)
         state = np.append(state, self.asv.velocity.data)
         return state
 

@@ -86,4 +86,4 @@ def rl_loop(need_load=True):
 
 
 if __name__ == '__main__':
-    rl_loop(False)
+    rl_loop()
