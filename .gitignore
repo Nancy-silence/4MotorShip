@@ -166,4 +166,3 @@ runs/
 .vscode/
 .idea/
 */__pycache__/
-*.pth
