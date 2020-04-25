@@ -12,34 +12,40 @@ CUDA = torch.cuda.is_available()
 
 class DDPG(object):
     def __init__(self, n_states, n_actions, a_bound=1, lr_a=0.0001, lr_c=0.001, tau=0.01, gamma=0.9,
-                 MAX_MEM=10000, MIN_MEM=None, BATCH_SIZE=128, noise_type='OU', **kwargs):
+                 MAX_MEM=10000, MIN_MEM=None, BATCH_SIZE=128, noise_type='OU', train=True, **kwargs):
         # 参数复制
         self.n_states, self.n_actions = n_states, n_actions
-        self.tau, self.gamma, self.bound = tau, gamma, a_bound
-        self.batch_size = BATCH_SIZE
-        # 记录agent跑的step数
-        self.run_step = 0
-        # 初始化训练指示符
-        self.start_train = False
-        self.mem_size = 0
-        # 创建经验回放池
-        self.memory = ExpReplay(n_states, n_actions, exp_size=MAX_MEM, exp_thres=MIN_MEM)  # s, a, r, d, s_
+        self.bound = a_bound
         # 创建神经网络并指定优化器
         self._build_net()
-        # 指定噪声类型
-        self.noise_type = noise_type
-        # 指定summary writer
-        if 'summary_path' in kwargs:
-            self._build_summary_writer(kwargs['summary_path'])
-        else:
-            self._build_summary_writer()
-        self.actor_optim = torch.optim.Adam(self.actor_eval.parameters(), lr=lr_a)
-        self.critic_optim = torch.optim.Adam(self.critic_eval.parameters(), lr=lr_c)
-        # 约定损失函数
-        self.mse_loss = nn.MSELoss()
         # 开启cuda
         if CUDA:
             self.cuda()
+
+        if train:
+            # 参数复制
+            self.tau, self.gamma = tau, gamma
+            self.batch_size = BATCH_SIZE
+            # 记录agent跑的step数
+            self.run_step = 0
+            # 初始化训练指示符
+            self.start_train = False
+            self.mem_size = 0
+            # 创建经验回放池
+            self.memory = ExpReplay(n_states, n_actions, exp_size=MAX_MEM, exp_thres=MIN_MEM)  # s, a, r, d, s_
+            # 指定噪声类型
+            self.noise_type = noise_type
+            # 指定summary writer
+            if 'summary_path' in kwargs:
+                self._build_summary_writer(kwargs['summary_path'])
+            else:
+                self._build_summary_writer()
+            # 指定优化器
+            self.actor_optim = torch.optim.Adam(self.actor_eval.parameters(), lr=lr_a)
+            self.critic_optim = torch.optim.Adam(self.critic_eval.parameters(), lr=lr_c)
+            # 约定损失函数
+            self.mse_loss = nn.MSELoss()
+        
 
     def _build_net(self):
         n_states, n_actions = self.n_states, self.n_actions

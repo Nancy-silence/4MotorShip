@@ -10,7 +10,7 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 MAX_EPISODE = 1000000
-MAX_DECAYEP = 1000
+MAX_DECAYEP = 3000
 MAX_STEP = 300
 
 LR_A = 0.0005
@@ -24,7 +24,7 @@ def rl_loop(model_path=False):
     """
     RENDER = False
 
-    env = ASVEnv(target_trajectory='linear')
+    env = ASVEnv(target_trajectory='func_sin')
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
@@ -84,4 +84,4 @@ def rl_loop(model_path=False):
         agent.save(e, env.target_trajectory)  # 保存网络参数
 
 if __name__ == '__main__':
-    rl_loop()
+    rl_loop('./model/func_sin.pth')
