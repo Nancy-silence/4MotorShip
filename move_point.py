@@ -30,8 +30,8 @@ class MovePoint(object):
     def func_sin(self, interval):
         x, y, theta = self.point
         x += interval / 5
-        y = 3 * np.sin(x) + 3
-        theta = math.atan(3 * np.cos(x))
+        y = -3 * np.cos(x) + 3
+        theta = math.atan(3 * np.sin(x))
         self.point = np.array([x, y, theta])
         return self.point
 

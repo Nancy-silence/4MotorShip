@@ -126,7 +126,7 @@ class DDPG(object):
         self.memory.add_step(s, a, r, d, s_)
         self.mem_size += 1
 
-    def save(self, episode):
+    def save(self, episode, target_trajectory):
         state = {
             'actor_eval_net': self.actor_eval.state_dict(),
             'actor_target_net': self.actor_target.state_dict(),
@@ -136,14 +136,12 @@ class DDPG(object):
             'learn_step': self.learn_step,
             'run_step' : self.run_step
         }
-        torch.save(state, './asv.pth')
+        torch.save(state, f'./model/{target_trajectory}.pth')
 
-    def load(self):
-        # print('\033[1;31;40m{}\033[0m'.format('加载模型参数...'))
-        # if not os.path.exists('drlte.pth'):
-        #     print('\033[1;31;40m{}\033[0m'.format('没找到保存文件'))
-        #     return 0
-        saved_state = torch.load("./asv.pth", map_location=torch.device('cpu'))
+    def load(self, model_path):
+        if not os.path.exists(model_path):
+            return 0
+        saved_state = torch.load(model_path, map_location=torch.device('cpu'))
         self.actor_eval.load_state_dict(saved_state['actor_eval_net'])
         self.actor_target.load_state_dict(saved_state['actor_target_net'])
         self.critic_eval.load_state_dict(saved_state['critic_eval_net'])
