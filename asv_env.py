@@ -35,6 +35,7 @@ class ASVEnv(gym.Env):
         plt.ion()
         self.aim_his = [self.aim.position[0:2]]
         self.asv_his = [self.asv.position.data[0:2]]
+        self.action_his = []
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(7,))
         self.action_space = spaces.Box(low=-10, high=10, shape=(4,))
@@ -102,18 +103,35 @@ class ASVEnv(gym.Env):
         # 此时aim已经是下一个要追逐的点，可以计算state
         state = self.get_state()
 
-        # 记录坐标点，便于绘图
+        # 记录坐标点及action，便于绘图
         self.aim_his.append(list(cur_aim[0:2]))
         self.asv_his.append(list(cur_asv_pos.data[0:2]))
+        self.action_his.append(list(action))
 
         return state, reward, done, ''
 
     def render(self):
         plt.clf()
-        # 绘制aim
-        plt.plot(*zip(*self.aim_his), 'y')
 
+        # 绘制轨迹图
+        plt.subplot(1,2,1)
+        # 绘制aim
+        plt.plot(*zip(*self.aim_his), 'y', label='aim')
         # 绘制asv
-        plt.plot(*zip(*self.asv_his), 'b')
+        plt.plot(*zip(*self.asv_his), 'b', label='asv')
+        plt.title('x-y')
+        plt.legend()
+
+        # 绘制action图
+        plt.subplot(1,2,2)
+        a = np.array(self.action_his)
+        # my_x_ticks = np.arange(0, 30, 0.1)
+        # plt.xticks(my_x_ticks)
+        plt.plot(range(0, len(a)), a[:,0], label='a1')
+        plt.plot(range(0, len(a)), a[:,1], label='a2')
+        plt.plot(range(0, len(a)), a[:,2], label='a3')
+        plt.plot(range(0, len(a)), a[:,3], label='a4')
+        plt.title('action')
+        plt.legend()
 
         plt.pause(0.1)

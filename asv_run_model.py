@@ -13,7 +13,7 @@ MAX_STEP = 300
 def rl_loop(model_path=False, render=True):
     RENDER = render
 
-    env = ASVEnv(target_trajectory='func_sin')
+    env = ASVEnv(target_trajectory='linear')
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
@@ -32,15 +32,15 @@ def rl_loop(model_path=False, render=True):
 
             next_state, reward, done, info = env.step(action)
 
-            # info = {
-            #     "cur_state": list(cur_state), "action": list(action),
-            #     "next_state": list(next_state), "reward": reward, "done": done
-            # }
             info = {
-                "ship": list(np.append(env.asv.position.data, env.asv.velocity.data)), "action": list(action),
-                "aim": list(env.aim.position.data), "reward": reward, "done": done
+                "cur_state": list(cur_state), "action": list(action),
+                "next_state": list(next_state), "reward": reward, "done": done
             }
-            # print(info, flush=True)
+            # info = {
+            #     "ship": list(np.append(env.asv.position.data, env.asv.velocity.data)), "action": list(action),
+            #     "aim": list(env.aim.position.data), "reward": reward, "done": done
+            # }
+            print(info, flush=True)
 
             cur_state = next_state
             cum_reward += reward
@@ -54,4 +54,4 @@ def rl_loop(model_path=False, render=True):
                 break
 
 if __name__ == '__main__':
-    rl_loop('./model/func_sin.pth')
+    rl_loop('./model/linear.pth')
