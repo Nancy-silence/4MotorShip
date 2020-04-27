@@ -8,8 +8,12 @@
 - 安装`pytorch 1.4.0`
 - 需要安装的相关依赖包：numpy、matplotlib、tensorboard、gym
 
-注意：使用`Anaconda3`进行包管理，建议使用conda新建环境配置环境
-
+注意：
+- 在Linux下运行需设置`c_env`文件夹下`step.py`文件中调用的动态链接库为`Sim.so`; Win下运行则设置为`Sim.dll`
+```
+sim = CDLL('./Sim.so')    # Win下运行设置为.dll
+```
+- 使用`Anaconda3`进行包管理，建议使用conda新建环境配置环境
 ### 下载项目
 
 ```
