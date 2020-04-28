@@ -38,7 +38,7 @@ class ASVEnv(gym.Env):
         self.action_his = []
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(7,))
-        self.action_space = spaces.Box(low=-10, high=10, shape=(4,))
+        self.action_space = spaces.Box(low=-15, high=15, shape=(4,))
     
     def reset(self):
         """重设环境状态
@@ -72,18 +72,23 @@ class ASVEnv(gym.Env):
             return True
         return False
         
-    def get_reward(self):
+    def get_reward(self, action):
         asv_pos = self.asv.position.data[0:2]
         aim_pos = self.aim.position[0:2]
         d = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
         # 计算艏向角和目标航向的夹角 del_theta
         del_theta = abs(self.aim.position[2]-self.asv.position.theta) if abs(self.aim.position[2]-self.asv.position.theta) < math.pi\
             else math.pi * 2 - abs(self.aim.position[2]-self.asv.position.theta)
-        r = np.power(2, - 5 * (d + del_theta)) - 1
+        r1 = np.power(2, - 5 * (d + del_theta)) - 1
+
+        a = np.sum(np.power(action, 2))
+        r2 = np.power(2, - a/10) - 1
+
+        r = r1 + (1/max(1,d+del_theta)) * r2
         return r
 
     def get_reward_punish(self):
-        return -5
+        return -12
         
     def step(self, action):
         self.asv.motor = action
@@ -97,7 +102,7 @@ class ASVEnv(gym.Env):
         if done:
             reward = self.get_reward_punish()
         else:
-            reward = self.get_reward()
+            reward = self.get_reward(action)
         # 计算完奖励之后，可以移动aim坐标
         cur_aim = self.aim.next_point(self.interval)
         # 此时aim已经是下一个要追逐的点，可以计算state
