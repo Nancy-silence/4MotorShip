@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 MAX_EPISODE = 10000000
-MAX_STEP = 600
+MAX_STEP = 300
 
 def rl_loop(model_path=False, render=True):
     RENDER = render
@@ -42,7 +42,7 @@ def rl_loop(model_path=False, render=True):
             # }
             # print(info, flush=True)
 
-            cur_state = next_state
+            cur_state = next_state + np.pad((np.random.rand(2)-0.5)/5,(0,5),'constant',constant_values=(0,0))
             cum_reward += reward
             if RENDER:
                 env.render()

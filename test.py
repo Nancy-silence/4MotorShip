@@ -60,11 +60,10 @@
     # write_json('loss_a.json', loss_a)
 
 import numpy as np
-import matplotlib.pyplot as plt
-x = np.arange(0,20,0.1)
-y = []
-for i in x:
-    y.append(np.power(2, -i) - 1)
-plt.plot(x,y)
-plt.show()
-
+a=(np.random.rand(2)-0.5)/5
+print(a)
+a = np.pad(a,(0,5),'constant',constant_values=(0,0))
+print(a)
+b = np.array([0,0,1,1,1,1,1])
+print(b)
+print(a+b)
