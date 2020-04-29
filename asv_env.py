@@ -30,7 +30,7 @@ class ASVEnv(gym.Env):
         else:
             self.asv = ASV(0, self.interval)
         self.aim = MovePoint(self.target_trajectory)
-        self.playground_shape = (-1, 7, -1, 7)
+        # self.playground_shape = (-1, 7, -1, 7)
 
         plt.ion()
         self.aim_his = [self.aim.position[0:2]]
@@ -52,6 +52,7 @@ class ASVEnv(gym.Env):
         asv_pos = self.asv.position.data[0:2]
         self.aim_his = [list(aim_pos)]
         self.asv_his = [list(asv_pos)]
+        self.action_his = []
         plt.ioff()
         plt.clf()
         plt.ion()
@@ -67,28 +68,30 @@ class ASVEnv(gym.Env):
         return state
 
     def get_done(self):
-        if (self.asv.position.x < self.playground_shape[0] or self.asv.position.x > self.playground_shape[1] or
-                self.asv.position.y < self.playground_shape[2] or self.asv.position.y > self.playground_shape[3]):
+        """对局结束：船不在目标点周围1m内"""
+        # 计算船和此时目标点（移动前）的距离
+        asv_pos = self.asv.position.data[0:2]
+        aim_pos = self.aim.position[0:2]
+        self.d = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
+
+        if self.d > 1:
             return True
         return False
         
     def get_reward(self, action):
-        asv_pos = self.asv.position.data[0:2]
-        aim_pos = self.aim.position[0:2]
-        d = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
-        # 计算艏向角和目标航向的夹角 del_theta
+        # 计算艏向角和此时目标航向的夹角 del_theta
         del_theta = abs(self.aim.position[2]-self.asv.position.theta) if abs(self.aim.position[2]-self.asv.position.theta) < math.pi\
             else math.pi * 2 - abs(self.aim.position[2]-self.asv.position.theta)
-        r1 = np.power(2, - 5 * (d + del_theta)) - 1
+        r1 = np.power(2, - 5 * (self.d + del_theta)) - 1
 
-        a = np.sum(np.power(action, 2))
-        r2 = np.power(2, - a/10) - 1
+        # a = np.sum(np.power(action, 2))
+        # r2 = np.power(2, - a/100) - 1
 
-        r = r1 + (1/max(1,d+del_theta)) * r2
-        return r
+        # r = r1 + (1/max(1,self.d+del_theta)) * r2
+        return r1
 
     def get_reward_punish(self):
-        return -12
+        return -5
         
     def step(self, action):
         self.asv.motor = action
