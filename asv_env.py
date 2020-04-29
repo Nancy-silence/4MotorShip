@@ -82,7 +82,10 @@ class ASVEnv(gym.Env):
         # 计算艏向角和此时目标航向的夹角 del_theta
         del_theta = abs(self.aim.position[2]-self.asv.position.theta) if abs(self.aim.position[2]-self.asv.position.theta) < math.pi\
             else math.pi * 2 - abs(self.aim.position[2]-self.asv.position.theta)
-        r1 = np.power(2, - 5 * (self.d + del_theta)) - 1
+        if del_theta < math.pi/2:
+            r1 = np.power(2, - 5 * (self.d + del_theta)) - 1
+        else:
+            r1 = -1
 
         # a = np.sum(np.power(action, 2))
         # r2 = np.power(2, - a/100) - 1

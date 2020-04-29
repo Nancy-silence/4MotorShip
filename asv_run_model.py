@@ -42,7 +42,7 @@ def rl_loop(model_path=False, render=True):
             # }
             # print(info, flush=True)
 
-            cur_state = next_state + np.pad((np.random.rand(2)-0.5)/5,(0,5),'constant',constant_values=(0,0))
+            cur_state = next_state
             cum_reward += reward
             if RENDER:
                 env.render()
