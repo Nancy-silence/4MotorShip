@@ -14,7 +14,7 @@ class StructPointer(Structure):
 def step(cur_state, action):
 
     # 通过CDLL加载.so文件为python的module
-    sim = CDLL('./Sim.dll')
+    sim = CDLL('./Sim.so')
 
     # 通过标准方法将python list 转为 c 的数组
     pyarray = np.append(cur_state,action).tolist()

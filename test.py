@@ -60,10 +60,12 @@
     # write_json('loss_a.json', loss_a)
 
 import numpy as np
-a=(np.random.rand(2)-0.5)/5
-print(a)
-a = np.pad(a,(0,5),'constant',constant_values=(0,0))
-print(a)
-b = np.array([0,0,1,1,1,1,1])
-print(b)
-print(a+b)
+import math
+# a=(np.random.rand(2)-0.5)/5
+# print(a)
+# a = np.pad(a,(0,5),'constant',constant_values=(0,0))
+# print(a)
+# b = np.array([0,0,1,1,1,1,1])
+# print(b)
+# print(a+b)
+print(math.tanh(0.04))
