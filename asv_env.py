@@ -68,41 +68,51 @@ class ASVEnv(gym.Env):
         return state
 
     def get_done(self):
-        """对局结束：船不在目标点周围1m内"""
-        # 计算船和此时目标点（移动前）的距离
-        asv_pos = self.asv.position.data[0:2]
-        aim_pos = self.aim.position[0:2]
-        self.d = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
-
-        if self.d > 1:
+        """对局结束：移动后的船不在目标点周围1m内"""
+        if self.d_after_a > 1:
             return True
         return False
         
     def get_reward(self, action):
-        # 计算艏向角和此时目标航向的夹角 del_theta
-        del_theta = abs(self.aim.position[2]-self.asv.position.theta) if abs(self.aim.position[2]-self.asv.position.theta) < math.pi\
-            else math.pi * 2 - abs(self.aim.position[2]-self.asv.position.theta)
-        if del_theta < math.pi/2:
-            r1 = np.power(2, - 5 * (self.d + del_theta)) - 1
-        else:
-            r1 = -1
+        r1 = np.power(2, - 10 * self.d_after_a) - 1
 
+        # 计算asv移动前后和此时aim距离的差
+        del_d = self.d_before_a - self.d_after_a
+
+        if del_d >= 0 and self.del_theta < math.pi/2:
+            r2 = np.power(math.e, - 5 * self.del_theta)
+        else:
+            r2 = -1
+
+        r = r1 + r2
         # a = np.sum(np.power(action, 2))
         # r2 = np.power(2, - a/100) - 1
 
         # r = r1 + (1/max(1,self.d+del_theta)) * r2
-        return r1
+        return r
 
     def get_reward_punish(self):
-        return -5
+        return -10
         
     def step(self, action):
-        self.asv.motor = action
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
+        aim_pos = self.aim.position[0:2]
+        # 计算asv本步移动前和aim之间的距离
+        asv_pos = self.asv.position.data[0:2]
+        self.d_before_a = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
+
         # 在获得action之后，让asv根据action移动
-        # 奖励应该是对于当前aim，以及移动以后的asv计算
-        # 让asv移动，则当前asv坐标更新为移动后的坐标
+        self.asv.motor = action
+        # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
+
+        # 计算asv移动后和aim之间的距离
+        # 及移动后asv艏向角和此时目标航向的夹角 del_theta
+        self.d_after_a = math.sqrt(np.sum(np.power((cur_asv_pos.data[0:2] - aim_pos), 2)))
+        self.del_theta = abs(self.aim.position[2]-self.asv.position.theta) if abs(self.aim.position[2]-self.asv.position.theta) < math.pi\
+            else math.pi * 2 - abs(self.aim.position[2]-self.asv.position.theta)
+        
+        # 奖励应该是对于当前aim，以及移动以后的asv计算
         done = self.get_done()
         # 注意奖励永远是根据当前aim坐标和当前asv坐标计算，当前aim尚未移动
         if done:
