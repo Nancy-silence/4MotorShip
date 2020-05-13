@@ -30,10 +30,10 @@ class ASVEnv(gym.Env):
         else:
             self.asv = ASV(0, self.interval)
         self.aim = MovePoint(self.target_trajectory)
-        # self.playground_shape = (-1, 7, -1, 7)
 
         plt.ion()
-        self.aim_his = [self.aim.position]
+        self.aim_his_pos = [self.aim.position]
+        self.aim_his_v = [self.aim.velocity]
         self.asv_his_pos = [self.asv.position.data]
         self.asv_his_v = [self.asv.velocity.data]
         self.action_his = []
@@ -50,9 +50,11 @@ class ASVEnv(gym.Env):
         self.aim.next_point(self.interval)
         self.asv.reset_state()
         aim_pos = self.aim.position
+        aim_v = self.aim.velocity
         asv_pos = self.asv.position.data
         asv_v = self.asv.velocity.data
-        self.aim_his = [list(aim_pos)]
+        self.aim_his_pos = [list(aim_pos)]
+        self.aim_his_v = [list(aim_v)]
         self.asv_his_pos = [list(asv_pos)]
         self.asv_his_v = [list(asv_v)]
         self.action_his = []
@@ -123,12 +125,13 @@ class ASVEnv(gym.Env):
         else:
             reward = self.get_reward(action)
         # 计算完奖励之后，可以移动aim坐标
-        cur_aim = self.aim.next_point(self.interval)
+        cur_aim_pos, cur_aim_v = self.aim.next_point(self.interval)
         # 此时aim已经是下一个要追逐的点，可以计算state
         state = self.get_state()
 
         # 记录坐标点及action，便于绘图
-        self.aim_his.append(list(cur_aim))
+        self.aim_his_pos.append(list(cur_aim_pos))
+        self.aim_his_v.append(list(cur_aim_v))
         self.asv_his_pos.append(list(cur_asv_pos.data))
         self.asv_his_v.append(list(cur_asv_v.data))
         self.action_his.append(list(action))
@@ -136,7 +139,8 @@ class ASVEnv(gym.Env):
         return state, reward, done, ''
 
     def render(self):
-        aim_his = np.array(self.aim_his)
+        aim_his_pos = np.array(self.aim_his_pos)
+        aim_his_v = np.array(self.aim_his_v)
         asv_his_pos = np.array(self.asv_his_pos)
         asv_his_v = np.array(self.asv_his_v)
         action_his = np.array(self.action_his)
@@ -146,7 +150,7 @@ class ASVEnv(gym.Env):
         # 绘制轨迹图
         plt.subplot(2,2,1)
         # 绘制aim
-        plt.plot(*zip(*aim_his[:,[0,1]]), 'y', label='aim')
+        plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='aim')
         # 绘制asv
         plt.plot(*zip(*asv_his_pos[:,[0,1]]), 'b', label='asv')
         plt.title('x-y')
@@ -165,17 +169,20 @@ class ASVEnv(gym.Env):
 
         # 绘制theta对比图
         plt.subplot(2,2,3)
-        plt.plot(range(0, len(aim_his)), aim_his[:,2], label='aim')
+        plt.plot(range(0, len(aim_his_pos)), aim_his_pos[:,2], label='aim')
         plt.plot(range(0, len(asv_his_pos)), asv_his_pos[:,2], label='asv')
         plt.title('theta')
         plt.legend()
 
         # 绘制asv的速度图
         plt.subplot(2,2,4)
-        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,0], label='u')
-        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,1], label='v')
-        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,2], label='r')
-        plt.title('asv_u,v,r')
+        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,0], label='u_asv')
+        plt.plot(range(0, len(aim_his_v)), aim_his_v[:,0], label='u_aim')
+        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,1], label='v_asv')
+        plt.plot(range(0, len(aim_his_v)), aim_his_v[:,1], label='v_aim')
+        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,2], label='r_asv')
+        plt.plot(range(0, len(aim_his_v)), aim_his_v[:,2], label='r_aim')
+        plt.title('u,v,r')
         plt.legend()
 
         plt.pause(0.1)

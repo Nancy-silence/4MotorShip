@@ -1,71 +1,64 @@
-# from collections import defaultdict, OrderedDict
-# import json
-# # video = defaultdict(list)
-# # video["label"].append("haha")
-# # video["data"].append(234)
-# # video["score"].append(0.3)
-# # video["label"].append("xixi")
-# # video["data"].append(123)
-# # video["score"].append(0.7)
-# test_dict = {
-#     '1': "1.0",
-#     #'results': video,
-#     'explain': {
-#         'used': True,
-#         'details': "this is for josn test",
-#   }
-# }
+# import numpy as np
+# import math
+# import matplotlib.pyplot as plt
 
-# json_str = json.dumps(test_dict)
-# with open('test_data.json', 'w') as json_file:
-#     json_file.write(json_str)
+# x = []
+# x_v = []
+# x_a = []
+# y = []
+# y_v = []
+# y_a = []
+# u_list = []
+# theta_list = []
+# t = np.arange(0,30.1,0.1)
+# for i in t :
+#     # sx = 6*(np.power(i,3)*10/np.power(30,3) - np.power(i,4)*15/np.power(30,4) + np.power(i,5)*6/np.power(30,5))
+#     sx = 6*i*i/900
+#     x.append(sx)
+#     sy = -3*math.cos(sx)+3
+    
+#     # sx_v = 6*(np.power(i,2)*30/np.power(30,3) - np.power(i,3)*60/np.power(30,4) + np.power(i,4)*30/np.power(30,5))
+#     sx_v = 6*i*2/900
+#     u = np.power(sx_v,2)
+#     x_v.append(sx_v)
+#     sy_v = 3*math.sin(sx)*sx_v
+#     u += np.power(sy_v,2)
+#     u = math.sqrt(u)
 
-# import json
-# xy = {'5': [], '6': [], '10': [], '11': [], '50': [], '51': [], '500':[], '501': [], '1000':[], '1001': []}
-# xy['%i' % (5)].append(s[0])
+#     theta = math.atan2(sy_v, sx_v)
+    
+#     # sx_a = 6*(i*60/np.power(30,3) - np.power(i,2)*180/np.power(30,4) + np.power(i,3)*120/np.power(30,5))
+#     sx_a = 6*2/900
+#     x_a.append(sx_a)
+#     sy_a = 3*(math.cos(sx)*sx_v*sx_v + math.sin(sx)*sx_a)
+#     y.append(sy)
+#     y_v.append(sy_v)
+#     y_a.append(sy_a)
+#     u_list.append(u)
+#     theta_list.append(theta)
 
-# filename2='xy.json'
-# json_str_xy = json.dumps(xy)
-# with open(filename2,'w') as file_obj2:
-#     file_obj2.write(json_str_xy)
+# plt.subplot(2,4,1)
+# plt.plot(x,y)
+# plt.subplot(2,4,2)
+# plt.plot(t,x,label="x")
+# plt.plot(t,y,label="y")
+# plt.legend()
+# plt.subplot(2,4,3)
+# plt.plot(t,x_v,label="x")
+# plt.plot(t,y_v,label="y")
+# plt.plot(t,u_list,label="u")
+# plt.legend()
+# plt.subplot(2,4,4)
+# plt.plot(t,x_a,label="x")
+# plt.plot(t,y_a,label="y")
+# plt.legend()
 
+# plt.subplot(2,4,5)
+# plt.plot(t,theta_list)
+# plt.show()
 
-
-# class NpEncoder(json.JSONEncoder):
-#     def default(self, obj):
-#         if isinstance(obj, np.integer):
-#             return int(obj)
-#         elif isinstance(obj, np.floating):
-#             return float(obj)
-#         elif isinstance(obj, np.ndarray):
-#             return obj.tolist()
-#         else:
-#             return super(NpEncoder, self).default(obj)
-
-# def write_json(filename, content):
-#     """
-#     @param filname:存储的json文件名称
-#     @param content:要存储的python数据，一般为List
-#     """
-#     temp = json.dumps(content, cls=NpEncoder)
-#     with open(filename,'w') as file_obj:
-#         file_obj.write(temp)
-
-
-    # write_json('reward.json', reward)
-    # write_json('x.json', x)
-    # write_json('y.json', y)
-    # write_json('error.json', error)
-    # write_json('td_error.json', td_error)
-    # write_json('loss_a.json', loss_a)
-
-import numpy as np
-import math
-# a=(np.random.rand(2)-0.5)/5
-# print(a)
-# a = np.pad(a,(0,5),'constant',constant_values=(0,0))
-# print(a)
-# b = np.array([0,0,1,1,1,1,1])
-# print(b)
-# print(a+b)
-print(math.tanh(0.04))
+from sympy import diff, symbols
+t = symbols('x', real=True)
+for i in range(1, 4):
+    print (diff(t**5, t, i))
+    print (diff(t**5, t, i).subs(t, i)),i
