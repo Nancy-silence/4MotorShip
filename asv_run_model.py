@@ -13,7 +13,7 @@ MAX_STEP = 300
 def rl_loop(model_path=False, render=True):
     RENDER = render
 
-    env = ASVEnv(target_trajectory='func_sin')
+    env = ASVEnv(target_trajectory='linear')
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
@@ -54,4 +54,4 @@ def rl_loop(model_path=False, render=True):
                 break
 
 if __name__ == '__main__':
-    rl_loop('./model/func_sin.pth')
+    rl_loop('./model/linear.pth')
