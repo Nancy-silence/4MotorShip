@@ -50,6 +50,9 @@ def rl_loop(model_path=False):
 
             next_state, reward, done, info = env.step(action)
 
+            if step == MAX_STEP - 1:
+                done = True
+
             agent.add_step(cur_state, action, reward, done, next_state)
             agent.learn_batch()
 
@@ -75,7 +78,6 @@ def rl_loop(model_path=False):
                 env.render()
                 time.sleep(0.1)
 
-            done = done or step == MAX_STEP - 1
             if done:
                 print(f'episode: {e}, cum_reward: {cum_reward}, step_num:{step+1}', flush=True)
                 # if cum_reward > -10:
