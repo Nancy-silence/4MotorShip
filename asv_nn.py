@@ -7,7 +7,7 @@ import torch.nn.functional as F
 CUDA = torch.cuda.is_available()
 
 class ASVActorNet(nn.Module):
-    def __init__(self, n_states, n_actions, n_neurons=100, a_bound=1):
+    def __init__(self, n_states, n_actions, n_neurons=300, a_bound=1):
         super().__init__()
         self.bound = a_bound
 
@@ -15,11 +15,11 @@ class ASVActorNet(nn.Module):
         self.fc1.weight.data.normal_(0, 0.1)
         torch.nn.init.uniform_(self.fc1.bias.data, 0, 0.1)
 
-        self.fc2 = nn.Linear(n_neurons, 50)
+        self.fc2 = nn.Linear(n_neurons, 150)
         self.fc2.weight.data.normal_(0, 0.1)
         torch.nn.init.uniform_(self.fc2.bias.data, 0, 0.1)
 
-        self.out = nn.Linear(50, n_actions)
+        self.out = nn.Linear(150, n_actions)
         torch.nn.init.xavier_uniform_(self.out.weight.data, gain=1)
         torch.nn.init.uniform_(self.out.bias.data, 0, 0.5)
         if CUDA:
@@ -43,16 +43,16 @@ class ASVActorNet(nn.Module):
 
 
 class ASVCriticNet(nn.Module):
-    def __init__(self, n_states, n_actions, n_neurons=64, a_bound=1):
+    def __init__(self, n_states, n_actions, n_neurons=300, a_bound=1):
         super().__init__()
 
         self.fc1 = nn.Linear(n_states+n_actions, n_neurons)
         self.fc1.weight.data.normal_(0, 0.1)
 
-        self.fc2 = nn.Linear(n_neurons, 32)
+        self.fc2 = nn.Linear(n_neurons, n_neurons)
         self.fc2.weight.data.normal_(0, 0.1)
 
-        self.out = nn.Linear(32, 1)
+        self.out = nn.Linear(n_neurons, 1)
         # self.out.weight.data.normal_(0, 0.1)
 
     def forward(self, s, a):

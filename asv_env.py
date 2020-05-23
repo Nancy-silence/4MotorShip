@@ -38,7 +38,7 @@ class ASVEnv(gym.Env):
         self.asv_his_v = [self.asv.velocity.data]
         self.action_his = []
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(7,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(12,))
         self.action_space = spaces.Box(low=-15, high=15, shape=(4,))
     
     def reset(self):
@@ -64,12 +64,17 @@ class ASVEnv(gym.Env):
         return self.get_state()
 
     def get_state(self):
-        """获取当前环境状态"""
-        asv_pos = self.asv.position.data[0:2]
-        aim_pos = self.aim.position[0:2]
-        theta = np.array([self.asv.position.theta, self.aim.position[2]])
-        state = np.append(aim_pos - asv_pos, theta)
-        state = np.append(state, self.asv.velocity.data)
+        """获取当前环境状态:asv6个状态 和 aim-asv5个相对状态 和 aim_theta"""
+        asv_pos = self.asv.position.data
+        asv_v = self.asv.velocity.data
+        aim_pos = self.aim.position
+        aim_v = self.aim.velocity
+        
+        delta_pos = aim_pos[0:2] - asv_pos[0:2]
+        aim_theta = np.array([aim_pos[2]])
+        delta_v = aim_v - asv_v
+
+        state = np.concatenate((asv_pos, asv_v, delta_pos, aim_theta, delta_v), axis=0)
         return state
 
     def get_done(self):
@@ -89,11 +94,11 @@ class ASVEnv(gym.Env):
         else:
             r2 = -1
 
-        r = r1 + r2
-        # a = np.sum(np.power(action, 2))
-        # r2 = np.power(2, - a/100) - 1
+        # r3 = 0
+        # for i in self.del_action:
+        #     r3 += 0.05 * (np.exp(-np.power(i, 2)/20) - 1)
 
-        # r = r1 + (1/max(1,self.d+del_theta)) * r2
+        r =r1 + r2
         return r
 
     def get_reward_punish(self):
@@ -105,6 +110,9 @@ class ASVEnv(gym.Env):
         # 计算asv本步移动前和aim之间的距离
         asv_pos = self.asv.position.data[0:2]
         self.d_before_a = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
+
+        # 获得本次action和上次action的差
+        self.del_action = action - self.asv.motor.data
 
         # 在获得action之后，让asv根据action移动
         self.asv.motor = action
