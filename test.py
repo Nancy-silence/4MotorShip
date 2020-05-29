@@ -57,8 +57,17 @@
 # plt.plot(t,theta_list)
 # plt.show()
 
-from sympy import diff, symbols
-t = symbols('x', real=True)
-for i in range(1, 4):
-    print (diff(t**5, t, i))
-    print (diff(t**5, t, i).subs(t, i)),i
+#测试OU噪声和高斯噪声的区别及各自表现
+
+from Utils import OUActionNoise,NormalActionNoise
+import matplotlib.pyplot as plt
+import numpy as np
+noise = NormalActionNoise(0*np.ones(1), 0.1*np.ones(1))   
+# noise = OUActionNoise(0*np.ones(1), 1.5*np.ones(1))
+x = np.arange(1000)
+y = []
+for i in range(1000):
+    y.append(noise())
+
+plt.plot(x,y)
+plt.show()

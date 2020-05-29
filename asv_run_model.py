@@ -29,7 +29,6 @@ def rl_loop(model_path=False, render=True):
         cum_reward = 0
         for step in range(MAX_STEP):
             action = agent.get_action(cur_state)[0]
-
             next_state, reward, done, info = env.step(action)
 
             info = {
