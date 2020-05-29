@@ -39,13 +39,13 @@ class MovePoint(object):
 
     def func_sin(self, t):
         x = t / 5
-        y = -3 * np.cos(t/5) + 3
+        y = - np.cos(t/5) + 1
         vx = 0.2
-        vy = 0.6 * math.sin(t/5)
+        vy = 0.2 * math.sin(t/5)
         theta = math.atan2(vy, vx)
         u = math.sqrt(vx**2 + vy **2)
         v = 0.0
-        r = (0.6*math.cos(t/5)) / (1 + 9*np.power(math.sin(t/5),2))
+        r = (0.2*math.cos(t/5)) / (1 + np.power(math.sin(t/5),2))
         self.position = np.array([x, y, theta])
         self.velocity = np.array([u, v, r])
         return self.position , self.velocity

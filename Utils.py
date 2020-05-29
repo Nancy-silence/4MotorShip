@@ -136,7 +136,7 @@ class NormalActionNoise(object):
 
 class OUActionNoise(object):
 
-    def __init__(self, mu, sigma, theta=.15, dt=1e-2, x0=None):
+    def __init__(self, mu, sigma, theta=.15, dt=1e-1, x0=None):
         self.theta = theta
         self.mu = mu
         self.sigma = sigma

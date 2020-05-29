@@ -84,6 +84,16 @@ class ASVEnv(gym.Env):
         return False
         
     def get_reward(self, action):
+        # # V5 备用R
+        # del_d = self.d_before_a - self.d_after_a
+        # if del_d >= 0 and self.del_theta < math.pi/2:
+        #     r1 = np.power(2, - 10 * self.d_after_a)
+        # else:
+        #     r1 = -1
+
+        # r2 = np.power(math.e, - 5 * self.del_theta) - 1
+
+        # # V3 R
         r1 = np.power(2, - 10 * self.d_after_a) - 1
 
         # 计算asv移动前后和此时aim距离的差
@@ -96,7 +106,7 @@ class ASVEnv(gym.Env):
 
         # r3 = 0
         # for i in self.del_action:
-        #     r3 += 0.05 * (np.exp(-np.power(i, 2)/20) - 1)
+        #     r3 += 0.1 * (np.exp(-np.power(i, 2)/20) - 1)
 
         r =r1 + r2
         return r
