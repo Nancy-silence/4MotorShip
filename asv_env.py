@@ -104,15 +104,15 @@ class ASVEnv(gym.Env):
         else:
             r2 = -1
 
-        # r3 = 0
-        # for i in self.del_action:
-        #     r3 += 0.1 * (np.exp(-np.power(i, 2)/20) - 1)
+        r3 = 0
+        for i in self.del_action:
+            r3 += 0.25 * (np.exp(-np.power(i, 2)/20) - 1)
 
-        r =r1 + r2
+        r =r1 + r2 + r3
         return r
 
     def get_reward_punish(self):
-        return -10
+        return -20
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
