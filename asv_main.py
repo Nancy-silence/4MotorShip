@@ -24,12 +24,12 @@ def rl_loop(model_path=False):
     """
     RENDER = False
 
-    env = ASVEnv(target_trajectory='linear')
+    env = ASVEnv(target_trajectory='func_sin')
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
 
-    agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.9, MAX_MEM=100000, MIN_MEM=1000, BATCH_SIZE=128)
+    agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.9, MAX_MEM=100000, MIN_MEM=10000, BATCH_SIZE=128)
     if model_path != False:
         START_EPISODE = agent.load(model_path)
     else:
@@ -87,4 +87,4 @@ def rl_loop(model_path=False):
         agent.save(e, env.target_trajectory)  # 保存网络参数
 
 if __name__ == '__main__':
-    rl_loop()
+    rl_loop('./model/func_sin.pth')
