@@ -104,18 +104,17 @@ class ASVEnv(gym.Env):
         else:
             r2 = -1
 
-        r3 = 0
-        for i in self.del_action:
-            r3 += 0.25 * (np.exp(-np.power(i, 2)/20) - 1)
-        
-        sum_a = np.sum(abs(action))
-        r4 = 0.5 * (np.exp(-np.power(sum_a, 2)/500) - 1)
+        sum_a = np.sum(np.power(action,2))
+        r3 = 0.5 * (np.exp(-sum_a/100) - 1)
+
+        sum_del_action = np.sum(abs(self.del_action)) 
+        r4 = 0.2 * (np.exp(-np.power(sum_del_action, 2)/500) - 1)
 
         r =r1 + r2 + r3 + r4
         return r
 
     def get_reward_punish(self):
-        return -25
+        return -20
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
@@ -179,8 +178,8 @@ class ASVEnv(gym.Env):
 
         # 绘制action图
         plt.subplot(2,2,2)
-        # my_x_ticks = np.arange(0, 30, 0.1)
-        # plt.xticks(my_x_ticks)
+        my_y_ticks = np.arange(-15, 15, 1)
+        plt.yticks(my_y_ticks)
         plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
         plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
         plt.plot(range(0, len(action_his)), action_his[:,2], label='a3')

@@ -164,7 +164,7 @@ class ASV(object):
         next_state = step(state, self.motor.data)
         self.__position.x, self.__position.y, self.__position.theta, \
             self.__velocity.u, self.__velocity.v, self.__velocity.r = next_state
-        # 有外力噪声的情况下
+        # 测量误差（run时增加，train不加）
         # self.__position.x += (np.random.rand()-0.5)/50
         # self.__position.y += (np.random.rand()-0.5)/50
         return self.__position, self.__velocity
