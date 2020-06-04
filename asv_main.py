@@ -10,7 +10,7 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 MAX_EPISODE = 1000000
-MAX_DECAYEP = 1000
+MAX_DECAYEP = 2000
 MAX_STEP = 300
 
 LR_A = 0.0005
@@ -29,7 +29,7 @@ def rl_loop(model_path=False):
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
 
-    agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.9, MAX_MEM=100000, MIN_MEM=10000, BATCH_SIZE=128)
+    agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.9, MAX_MEM=300000, MIN_MEM=1000, BATCH_SIZE=128)
     if model_path != False:
         START_EPISODE = agent.load(model_path)
     else:
@@ -41,8 +41,8 @@ def rl_loop(model_path=False):
     for e in range(START_EPISODE, MAX_EPISODE):
         cur_state = env.reset()
         cum_reward = 0
-        noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.1)
-        agent.build_noise(0, 1 * noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
+        noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.07)
+        agent.build_noise(0, 1.5 * noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
 
         for step in range(MAX_STEP):
 
@@ -84,6 +84,7 @@ def rl_loop(model_path=False):
                 # if cum_reward > -10:
                 #     RENDER = True
                 break
+
         agent.save(e, env.target_trajectory)  # 保存网络参数
 
 if __name__ == '__main__':
