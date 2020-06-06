@@ -38,6 +38,9 @@ def rl_loop(model_path=False):
     summary_writer = agent.get_summary_writer()
     show_reward = 0
 
+    reward_his = []
+    best_ave_reward = -1000
+
     for e in range(START_EPISODE, MAX_EPISODE):
         cur_state = env.reset()
         cum_reward = 0
@@ -80,12 +83,16 @@ def rl_loop(model_path=False):
 
             # done = done or step == MAX_STEP - 1
             if done :
+                reward_his.append(cum_reward)
                 print(f'episode: {e}, cum_reward: {cum_reward}, step_num:{step+1}', flush=True)
                 # if cum_reward > -10:
                 #     RENDER = True
                 break
 
+        if np.mean(reward_his[-min(10, len(reward_his)):]) > best_ave_reward:
+            best_ave_reward = np.mean(reward_his[-min(10, len(reward_his)):])
+            agent.save(e, env.target_trajectory + ' best_model')
         agent.save(e, env.target_trajectory)  # 保存网络参数
 
 if __name__ == '__main__':
-    rl_loop('./model/func_sin.pth')
+    rl_loop()
