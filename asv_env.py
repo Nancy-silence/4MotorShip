@@ -39,7 +39,7 @@ class ASVEnv(gym.Env):
         self.action_his = []
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(12,))
-        self.action_space = spaces.Box(low=-15, high=15, shape=(4,))
+        self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
     
     def reset(self):
         """重设环境状态
@@ -97,24 +97,24 @@ class ASVEnv(gym.Env):
         r1 = np.power(2, - 10 * self.d_after_a) - 1
 
         # 计算asv移动前后和此时aim距离的差
-        del_d = self.d_before_a - self.d_after_a
+        del_d_target = self.d_before_a - self.d_after_a
 
-        if del_d >= 0 and self.del_theta < math.pi/2:
-            r2 = np.power(math.e, - 5 * self.del_theta)
+        if del_d_target >= 0 and self.del_theta < math.pi/2:
+            r2 = np.power(math.e, - 7 * (self.del_theta + self.del_d))
         else:
             r2 = -1
 
         sum_a = np.sum(np.power(action,2))
-        r3 = 0.5 * (np.exp(-sum_a/100) - 1)
+        r3 = 0.8 * (np.exp(-sum_a/100) - 1)
 
         sum_del_action = np.sum(abs(self.del_action)) 
-        r4 = 0.2 * (np.exp(-np.power(sum_del_action, 2)/500) - 1)
+        r4 = 0.4 * (np.exp(-np.power(sum_del_action, 2)/500) - 1)
 
         r =r1 + r2 + r3 + r4
         return r
 
     def get_reward_punish(self):
-        return -20
+        return -25
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
@@ -132,10 +132,12 @@ class ASVEnv(gym.Env):
         cur_asv_pos, cur_asv_v = self.asv.move()
 
         # 计算asv移动后和aim之间的距离
-        # 及移动后asv艏向角和此时目标航向的夹角 del_theta
         self.d_after_a = math.sqrt(np.sum(np.power((cur_asv_pos.data[0:2] - aim_pos), 2)))
-        self.del_theta = abs(self.aim.position[2]-self.asv.position.theta) if abs(self.aim.position[2]-self.asv.position.theta) < math.pi\
-            else math.pi * 2 - abs(self.aim.position[2]-self.asv.position.theta)
+        # 及移动后asv艏向角和此时目标轨迹上同x点的夹角差del_theta和距离差del_d
+        trajectory_point = self.aim.trajectory_point(cur_asv_pos.x)
+        self.del_d = abs(trajectory_point[1] - cur_asv_pos.y)
+        self.del_theta = abs(trajectory_point[2]-self.asv.position.theta) if abs(trajectory_point[2]-self.asv.position.theta) < math.pi\
+            else math.pi * 2 - abs(trajectory_point[2]-self.asv.position.theta)
         
         # 奖励应该是对于当前aim，以及移动以后的asv计算
         done = self.get_done()
