@@ -47,12 +47,15 @@ class MovePoint(object):
         return self.position, self.velocity
 
     def linear_trajectory(self, x):
-        t = 5 * x
-        y = t / 5
-        vx = 0.2
-        vy = 0.2
-        theta = math.atan2(vy, vx)
-        pos = np.array([x, y, theta])
+        if x >= 0:
+            t = 5 * x
+            y = t / 5
+            vx = 0.2
+            vy = 0.2
+            theta = math.atan2(vy, vx)
+            pos = np.array([x, y, theta])
+        else:
+            pos = np.array([0, 0, math.pi/4])
         return pos
 
     def func_sin(self, t):
@@ -69,12 +72,15 @@ class MovePoint(object):
         return self.position , self.velocity
 
     def func_sin_trajectory(self, x):
-        t = 5 * x
-        y = - np.cos(t/5) + 1
-        vx = 0.2
-        vy = 0.2 * math.sin(t/5)
-        theta = math.atan2(vy, vx)
-        pos = np.array([x, y, theta])
+        if x >= 0:
+            t = 5 * x
+            y = - np.cos(t/5) + 1
+            vx = 0.2
+            vy = 0.2 * math.sin(t/5)
+            theta = math.atan2(vy, vx)
+            pos = np.array([x, y, theta])
+        else:
+            pos = np.array([0, 0, 0])
         return pos
 
     def random(self, t):

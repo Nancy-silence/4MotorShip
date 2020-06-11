@@ -125,12 +125,11 @@ class Dim4Motor(object):
 
 class ASV(object):
 
-    def __init__(self, init_theta = 0, time_interval = 0.1):
+    def __init__(self, time_interval = 0.1):
         """
-        @param: init_theta船的初始航向角度，time_interval控制系统决策时间
+        @param: time_interval控制系统决策时间
         """
         self.time_interval = time_interval
-        self.init_theta = init_theta
         self.__position = Dim3Position()
         self.__velocity = Dim3Velocity()
         self.__motor = Dim4Motor()
@@ -152,9 +151,10 @@ class ASV(object):
         self.__motor.a1, self.__motor.a2, self.__motor.a3, self.__motor.a4 = motor 
 
     def reset_state(self):
-        """TODO:试一下训练时Init_theta在[-pi,pi]之间随机"""
-        self.__position.x, self.__position.y, self.__position.theta = 0, 0, self.init_theta
-        self.__velocity.u, self.__velocity.v, self.__velocity.r = 0, 0, 0
+        self.__position.x = np.random.rand() - 0.5
+        self.__position.y = np.random.rand() - 0.5
+        self.__position.theta = np.random.uniform(-math.pi/4, math.pi/2)
+        self.__velocity.u, self.__velocity.v, self.__velocity.r = 0.01, 0.01, 0.01
         self.motor = (0, 0, 0, 0)
         return self.__position, self.__velocity
 

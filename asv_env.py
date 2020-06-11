@@ -25,10 +25,7 @@ class ASVEnv(gym.Env):
     def __init__(self, target_trajectory='linear', interval=0.1):
         self.target_trajectory = target_trajectory
         self.interval = interval
-        if self.target_trajectory == 'linear':
-            self.asv = ASV(math.pi/4, self.interval)
-        else:
-            self.asv = ASV(0, self.interval)
+        self.asv = ASV(self.interval)
         self.aim = MovePoint(self.target_trajectory)
 
         plt.ion()
