@@ -105,7 +105,7 @@ class ASVEnv(gym.Env):
         r3 = 0.8 * (np.exp(-sum_a/100) - 1)
 
         sum_del_action = np.sum(abs(self.del_action)) 
-        r4 = 0.4 * (np.exp(-np.power(sum_del_action, 2)/500) - 1)
+        r4 = 0.6 * (np.exp(-np.power(sum_del_action, 2)/500) - 1)
 
         r =r1 + r2 + r3 + r4
         return r
