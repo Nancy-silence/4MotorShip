@@ -11,29 +11,21 @@ from gym import spaces
 
 class ASVEnv(gym.Env):
     """
-    AUV 的环境
-    AUV的状态(state)由六个部分组成，分别是：
-        当前坐标x
-        当前坐标y
-        当前夹角theta
-        转机1速度 u
-        转机2速度 v
-        转机3速度 r
-    AUV的动作(action)是控制四个转机速度的列表[]
-    AUV的状态变化通过调用c语言接口实现
+    ASV 的环境
+    ASV的状态(state)由12个部分组成，分别是：
+        asv的当前坐标x,当前坐标y,当前航角theta,前进方向速度 u,切向速度 v,转动速度 r
+        asv和目标点间相对x,y,u,v,r
+        目标点航角theta
+    ASV的动作(action)是控制四个电机速度的列表[]
+    ASV的状态变化通过调用c语言接口实现
     """
-    def __init__(self, target_trajectory='linear', interval=0.1):
+    def __init__(self, target_trajectory='linear', interval=0.1, measure_bias=False):
         self.target_trajectory = target_trajectory
         self.interval = interval
-        self.asv = ASV(self.interval)
+        self.asv = ASV(self.interval, measure_bias)
         self.aim = MovePoint(self.target_trajectory)
 
         plt.ion()
-        self.aim_his_pos = [self.aim.position]
-        self.aim_his_v = [self.aim.velocity]
-        self.asv_his_pos = [self.asv.position.data]
-        self.asv_his_v = [self.asv.velocity.data]
-        self.action_his = []
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(12,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
@@ -46,15 +38,6 @@ class ASVEnv(gym.Env):
         self.aim.reset()
         self.aim.next_point(self.interval)
         self.asv.reset_state()
-        aim_pos = self.aim.position
-        aim_v = self.aim.velocity
-        asv_pos = self.asv.position.data
-        asv_v = self.asv.velocity.data
-        self.aim_his_pos = [list(aim_pos)]
-        self.aim_his_v = [list(aim_v)]
-        self.asv_his_pos = [list(asv_pos)]
-        self.asv_his_v = [list(asv_v)]
-        self.action_his = []
         plt.ioff()
         plt.clf()
         plt.ion()
@@ -62,10 +45,8 @@ class ASVEnv(gym.Env):
 
     def get_state(self):
         """获取当前环境状态:asv6个状态 和 aim-asv5个相对状态 和 aim_theta"""
-        asv_pos = self.asv.position.data
-        asv_v = self.asv.velocity.data
-        aim_pos = self.aim.position
-        aim_v = self.aim.velocity
+        aim_pos, aim_v = self.aim.observation()
+        asv_pos, asv_v = self.asv.observation()
         
         delta_pos = aim_pos[0:2] - asv_pos[0:2]
         aim_theta = np.array([aim_pos[2]])
@@ -115,10 +96,10 @@ class ASVEnv(gym.Env):
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
-        aim_pos = self.aim.position[0:2]
+        aim_pos, aim_v= self.aim.observation()
         # 计算asv本步移动前和aim之间的距离
-        asv_pos = self.asv.position.data[0:2]
-        self.d_before_a = math.sqrt(np.sum(np.power((asv_pos - aim_pos), 2)))
+        asv_pos, asv_v= self.asv.observation()
+        self.d_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
 
         # 获得本次action和上次action的差
         self.del_action = action - self.asv.motor.data
@@ -129,12 +110,12 @@ class ASVEnv(gym.Env):
         cur_asv_pos, cur_asv_v = self.asv.move()
 
         # 计算asv移动后和aim之间的距离
-        self.d_after_a = math.sqrt(np.sum(np.power((cur_asv_pos.data[0:2] - aim_pos), 2)))
+        self.d_after_a = math.sqrt(np.sum(np.power((cur_asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 及移动后asv艏向角和此时目标轨迹上同x点的夹角差del_theta和距离差del_d
-        trajectory_point = self.aim.trajectory_point(cur_asv_pos.x)
-        self.del_d = abs(trajectory_point[1] - cur_asv_pos.y)
-        self.del_theta = abs(trajectory_point[2]-self.asv.position.theta) if abs(trajectory_point[2]-self.asv.position.theta) < math.pi\
-            else math.pi * 2 - abs(trajectory_point[2]-self.asv.position.theta)
+        trajectory_point = self.aim.trajectory_point(cur_asv_pos[0])
+        self.del_d = abs(trajectory_point[1] - cur_asv_pos[1])
+        self.del_theta = abs(trajectory_point[2]-cur_asv_pos[2]) if abs(trajectory_point[2]-cur_asv_pos[2]) < math.pi\
+            else math.pi * 2 - abs(trajectory_point[2]-cur_asv_pos[2])
         
         # 奖励应该是对于当前aim，以及移动以后的asv计算
         done = self.get_done()
@@ -148,21 +129,14 @@ class ASVEnv(gym.Env):
         # 此时aim已经是下一个要追逐的点，可以计算state
         state = self.get_state()
 
-        # 记录坐标点及action，便于绘图
-        self.aim_his_pos.append(list(cur_aim_pos))
-        self.aim_his_v.append(list(cur_aim_v))
-        self.asv_his_pos.append(list(cur_asv_pos.data))
-        self.asv_his_v.append(list(cur_asv_v.data))
-        self.action_his.append(list(action))
-
         return state, reward, done, ''
 
     def render(self):
-        aim_his_pos = np.array(self.aim_his_pos)
-        aim_his_v = np.array(self.aim_his_v)
-        asv_his_pos = np.array(self.asv_his_pos)
-        asv_his_v = np.array(self.asv_his_v)
-        action_his = np.array(self.action_his)
+        aim_his_pos = np.array(self.aim.aim_his_pos)
+        aim_his_v = np.array(self.aim.aim_his_v)
+        asv_his_pos = np.array(self.asv.asv_his_pos)
+        asv_his_v = np.array(self.asv.asv_his_v)
+        action_his = np.array(self.asv.asv_his_motor)
 
         plt.clf()
 
@@ -172,17 +146,20 @@ class ASVEnv(gym.Env):
         plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='aim')
         # 绘制asv
         plt.plot(*zip(*asv_his_pos[:,[0,1]]), 'b', label='asv')
+        # my_ticks = np.arange(-0.5, 6.5, 0.5)
+        # plt.xticks(my_ticks)
+        # plt.yticks(my_ticks)
         plt.title('x-y')
         plt.legend()
 
         # 绘制action图
         plt.subplot(2,2,2)
-        my_y_ticks = np.arange(-15, 15, 1)
-        plt.yticks(my_y_ticks)
         plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
         plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
         plt.plot(range(0, len(action_his)), action_his[:,2], label='a3')
         plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
+        my_y_ticks = np.arange(-6, 7, 1)
+        plt.yticks(my_y_ticks)
         plt.title('action')
         plt.legend()
 

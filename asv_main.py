@@ -24,7 +24,7 @@ def rl_loop(model_path=False):
     """
     RENDER = False
 
-    env = ASVEnv(target_trajectory='func_sin')
+    env = ASVEnv(target_trajectory='linear')
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
