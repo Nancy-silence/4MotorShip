@@ -9,6 +9,10 @@ class MovePoint(object):
         self.position = np.array([0.0, 0.0, 0.0])
         self.velocity = np.array([0.0, 0.0, 0.0])
         self.t = 0.0
+
+        self.aim_his_pos = [self.position]
+        self.aim_his_v = [self.velocity]
+
         self.target_trajectory = target_trajectory
         self.impl = getattr(self, target_trajectory)
 
@@ -16,6 +20,12 @@ class MovePoint(object):
         self.position = np.array([0.0, 0.0, 0.0])
         self.velocity = np.array([0.0, 0.0, 0.0])
         self.t = 0.0
+
+        self.aim_his_pos = [list(self.position)]
+        self.aim_his_v = [list(self.velocity)]
+
+    def observation(self):
+        return self.position, self.velocity
 
     # @property
     # def position(self):
@@ -44,6 +54,9 @@ class MovePoint(object):
         r = 0.0
         self.position = np.array([x, y, theta])
         self.velocity = np.array([u, v, r])
+
+        self.aim_his_pos.append(list(self.position))
+        self.aim_his_v.append(list(self.velocity))
         return self.position, self.velocity
 
     def linear_trajectory(self, x):
@@ -69,6 +82,9 @@ class MovePoint(object):
         r = (0.2*math.cos(t/5)) / (1 + np.power(math.sin(t/5),2))
         self.position = np.array([x, y, theta])
         self.velocity = np.array([u, v, r])
+
+        self.aim_his_pos.append(list(self.position))
+        self.aim_his_v.append(list(self.velocity))
         return self.position , self.velocity
 
     def func_sin_trajectory(self, x):

@@ -125,14 +125,20 @@ class Dim4Motor(object):
 
 class ASV(object):
 
-    def __init__(self, time_interval = 0.1):
+    def __init__(self, time_interval = 0.1, measure_bias = False):
         """
         @param: time_interval控制系统决策时间
         """
         self.time_interval = time_interval
+        self.measure_bias = measure_bias
         self.__position = Dim3Position()
+        self.__position_bias = Dim3Position()
         self.__velocity = Dim3Velocity()
         self.__motor = Dim4Motor()
+
+        self.asv_his_pos = [self.__position.data]
+        self.asv_his_v = [self.__velocity.data]
+        self.asv_his_motor = [self.__motor.data]
     
     @property
     def position(self):
@@ -141,6 +147,10 @@ class ASV(object):
     @property
     def velocity(self):
         return self.__velocity
+
+    @property
+    def position_bias(self):
+        return self.__position_bias
 
     @property
     def motor(self):
@@ -156,19 +166,44 @@ class ASV(object):
         self.__position.theta = np.random.uniform(-math.pi/2, math.pi/2)
         self.__velocity.u, self.__velocity.v, self.__velocity.r = 0, 0, 0
         self.motor = (0, 0, 0, 0)
-        return self.__position, self.__velocity
+
+        self.asv_his_pos = [list(self.__position.data)]
+        self.asv_his_v = [list(self.__velocity.data)]
+        self.asv_his_motor = []
+
+        if self.measure_bias:
+            self.obs_add_bias()
+        return self.observation()
 
     def move(self):
         from c_env.step import step
-        state = np.append(self.position.data, self.velocity.data)
-        next_state = step(state, self.motor.data)
+        obs = np.append(self.position.data, self.velocity.data)
+        next_obs = step(obs, self.motor.data)
         self.__position.x, self.__position.y, self.__position.theta, \
-            self.__velocity.u, self.__velocity.v, self.__velocity.r = next_state
-        # 测量误差（run时增加，train不加）
-        # self.__position.x += (np.random.rand()-0.5)/50
-        # self.__position.y += (np.random.rand()-0.5)/50
-        return self.__position, self.__velocity
+            self.__velocity.u, self.__velocity.v, self.__velocity.r = next_obs
 
+        self.asv_his_pos.append(list(self.__position.data))
+        self.asv_his_v.append(list(self.__velocity.data))
+        self.asv_his_motor.append(list(self.__motor.data))
+
+        if self.measure_bias:
+            self.obs_add_bias()
+        return self.observation()
+
+    def obs_add_bias(self):
+        self.__position_bias.x = self.__position.x + (np.random.rand()-0.5)/50
+        self.__position_bias.y = self.__position.y + (np.random.rand()-0.5)/50
+        self.__position_bias.theta = self.__position.theta
+
+    def observation(self):
+        if self.measure_bias:
+            return self.__position_bias.data, self.__velocity.data
+        else:
+            return self.__position.data, self.__velocity.data
+    
+
+    
+    
 
 # if __name__ == '__main__':
 #     ship = ASV()
