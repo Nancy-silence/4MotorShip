@@ -5,21 +5,34 @@ import numpy as np
 import math
 
 class MovePoint(object):
-    def __init__(self, target_trajectory='linear'):
-        self.position = np.array([0.0, 0.0, 0.0])
-        self.velocity = np.array([0.0, 0.0, 0.0])
-        self.t = 0.0
+    def __init__(self, interval = 0.1, target_trajectory='linear', ud=0.3):
+        self.interval = interval
+        self.target_trajectory = target_trajectory
+        self.ud = 0.3
+
+        if self.target_trajectory == 'linear':
+            self.position = np.array([1, 5, 0])
+        elif self.target_trajectory == 'func_sin':
+            self.position = np.array([0, 4, math.pi/4])
+        else:
+            #TODO:异常处理
+            pass
+        self.velocity = np.array([self.ud, 0, 0])
 
         self.aim_his_pos = [self.position]
         self.aim_his_v = [self.velocity]
 
-        self.target_trajectory = target_trajectory
         self.impl = getattr(self, target_trajectory)
 
     def reset(self):
-        self.position = np.array([0.0, 0.0, 0.0])
-        self.velocity = np.array([0.0, 0.0, 0.0])
-        self.t = 0.0
+        if self.target_trajectory == 'linear':
+            self.position = np.array([1, 5, 0])
+        elif self.target_trajectory == 'func_sin':
+            self.position = np.array([0, 4, math.pi/4])
+        else:
+            #TODO:异常处理
+            pass
+        self.velocity = np.array([self.ud, 0, 0])
 
         self.aim_his_pos = [list(self.position)]
         self.aim_his_v = [list(self.velocity)]
@@ -31,9 +44,8 @@ class MovePoint(object):
     # def position(self):
     #     return self.position
 
-    def next_point(self, interval):
-        self.t += interval
-        return self.impl(self.t)
+    def next_point(self):
+        return self.impl()
 
     def trajectory_point(self, x):
         if self.target_trajectory == 'linear':
@@ -43,43 +55,28 @@ class MovePoint(object):
         else:
             return
 
-    def linear(self, t):
-        x = t / 5
-        y = t / 5
-        vx = 0.2
-        vy = 0.2
-        theta = math.atan2(vy, vx)
-        u = math.sqrt(vx**2 + vy **2)
-        v = 0.0
-        r = 0.0
-        self.position = np.array([x, y, theta])
-        self.velocity = np.array([u, v, r])
+    def linear(self):
+        x = self.position[0] + self.ud * self.interval
+        self.position = np.array([x, self.position[1], self.position[2]])
 
         self.aim_his_pos.append(list(self.position))
         self.aim_his_v.append(list(self.velocity))
         return self.position, self.velocity
 
     def linear_trajectory(self, x):
-        if x >= 0:
-            t = 5 * x
-            y = t / 5
-            vx = 0.2
-            vy = 0.2
-            theta = math.atan2(vy, vx)
-            pos = np.array([x, y, theta])
+        if x >= 1:
+            pos = np.array([x, 5, 0])
         else:
-            pos = np.array([0, 0, math.pi/4])
+            pos = np.array([1, 5, 0])
         return pos
 
-    def func_sin(self, t):
-        x = t / 5
-        y = - np.cos(t/5) + 1
-        vx = 0.2
-        vy = 0.2 * math.sin(t/5)
-        theta = math.atan2(vy, vx)
-        u = math.sqrt(vx**2 + vy **2)
-        v = 0.0
-        r = (0.2*math.cos(t/5)) / (1 + np.power(math.sin(t/5),2))
+    def func_sin(self):
+        x = self.position[0] + self.ud * self.interval / math.sqrt(1 + np.power(math.cos(self.position[0]),2))
+        y = self.position[1] + self.ud * self.interval * math.cos(self.position[0]) / math.sqrt(1 + np.power(math.cos(self.position[0]),2))
+        theta = math.atan2(math.cos(self.position[0]), 1)
+        u = self.ud
+        v = 0
+        r = (theta - self.position[2]) / self.interval
         self.position = np.array([x, y, theta])
         self.velocity = np.array([u, v, r])
 
@@ -89,16 +86,9 @@ class MovePoint(object):
 
     def func_sin_trajectory(self, x):
         if x >= 0:
-            t = 5 * x
-            y = - np.cos(t/5) + 1
-            vx = 0.2
-            vy = 0.2 * math.sin(t/5)
-            theta = math.atan2(vy, vx)
+            y = math.sin(x) + 4
+            theta = math.atan2(math.cos(x), 1)
             pos = np.array([x, y, theta])
         else:
-            pos = np.array([0, 0, 0])
+            pos = np.array([0, 4, math.pi/4])
         return pos
-
-    def random(self, t):
-        self.position = np.random.randint(0, 100, 2)
-        return self.position, self.velocity

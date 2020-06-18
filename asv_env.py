@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import numpy as np
+import pandas as pd
 import math
 from asv_dynamic import ASV
 from move_point import MovePoint
@@ -19,11 +20,11 @@ class ASVEnv(gym.Env):
     ASV的动作(action)是控制四个电机速度的列表[]
     ASV的状态变化通过调用c语言接口实现
     """
-    def __init__(self, target_trajectory='linear', interval=0.1, measure_bias=False):
+    def __init__(self, target_trajectory='linear', interval=0.1, ud=0.3, measure_bias=False):
         self.target_trajectory = target_trajectory
         self.interval = interval
         self.asv = ASV(self.interval, measure_bias)
-        self.aim = MovePoint(self.target_trajectory)
+        self.aim = MovePoint(self.interval, self.target_trajectory, ud)
 
         plt.ion()
 
@@ -36,8 +37,10 @@ class ASVEnv(gym.Env):
             将船只重置为(0, 0)
         """
         self.aim.reset()
-        self.aim.next_point(self.interval)
-        self.asv.reset_state()
+        begin_pos, begin_v= self.aim.observation()
+        self.asv.reset_state(begin_pos)
+        self.aim.next_point()
+    
         plt.ioff()
         plt.clf()
         plt.ion()
@@ -125,7 +128,7 @@ class ASVEnv(gym.Env):
         else:
             reward = self.get_reward(action)
         # 计算完奖励之后，可以移动aim坐标
-        cur_aim_pos, cur_aim_v = self.aim.next_point(self.interval)
+        cur_aim_pos, cur_aim_v = self.aim.next_point()
         # 此时aim已经是下一个要追逐的点，可以计算state
         state = self.get_state()
 
@@ -146,8 +149,7 @@ class ASVEnv(gym.Env):
         plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='aim')
         # 绘制asv
         plt.plot(*zip(*asv_his_pos[:,[0,1]]), 'b', label='asv')
-        # my_ticks = np.arange(-0.5, 6.5, 0.5)
-        # plt.xticks(my_ticks)
+        # my_ticks = np.arange(-4, 8, 0.5)
         # plt.yticks(my_ticks)
         plt.title('x-y')
         plt.legend()
@@ -182,3 +184,24 @@ class ASVEnv(gym.Env):
         plt.legend()
 
         plt.pause(0.1)
+
+    def data_save_exl(self):
+        aim_his_pos = np.array(self.aim.aim_his_pos)
+        aim_his_v = np.array(self.aim.aim_his_v)
+        asv_his_pos = np.array(self.asv.asv_his_pos)
+        asv_his_v = np.array(self.asv.asv_his_v)
+        action_his = np.array(self.asv.asv_his_motor)
+        aim_s = np.hstack((aim_his_pos, aim_his_v))
+        asv_s = np.hstack((asv_his_pos, asv_his_v))
+        a = np.array(self.asv.asv_his_motor)
+
+        aim_s_data = pd.DataFrame({'x':aim_s[:,0],'y':aim_s[:,1],'theta':aim_s[:,2],'u':aim_s[:,3],'v':aim_s[:,4],'r':aim_s[:,5]})
+        asv_s_data = pd.DataFrame({'x':asv_s[:,0],'y':asv_s[:,1],'theta':asv_s[:,2],'u':asv_s[:,3],'v':asv_s[:,4],'r':asv_s[:,5]})
+        a_data = pd.DataFrame({'f1':a[:,0],'f2':a[:,1],'f3':a[:,2],'f4':a[:,3]})
+
+        writer = pd.ExcelWriter('State-Action.xlsx')
+        aim_s_data.to_excel(writer, 'aim state', float_format='%.5f')
+        asv_s_data.to_excel(writer, 'asv state', float_format='%.5f')
+        a_data.to_excel(writer, 'action', float_format='%.5f')
+        writer.save()
+        writer.close()

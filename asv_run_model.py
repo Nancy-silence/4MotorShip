@@ -13,7 +13,7 @@ MAX_STEP = 300
 def rl_loop(model_path=False, render=True):
     RENDER = render
 
-    env = ASVEnv(target_trajectory='linear')  # 加入测量误差用 measure_bias=True
+    env = ASVEnv(target_trajectory='func_sin')  # 加入测量误差用 measure_bias=True
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_space.high[0]
@@ -24,7 +24,7 @@ def rl_loop(model_path=False, render=True):
     else:
         START_EPISODE = 0
 
-    for e in range(START_EPISODE, MAX_EPISODE):
+    for e in range(START_EPISODE, START_EPISODE+10):
         cur_state = env.reset()
         cum_reward = 0
         for step in range(MAX_STEP):
@@ -51,6 +51,7 @@ def rl_loop(model_path=False, render=True):
             if done:
                 print(f'episode: {e}, cum_reward: {cum_reward}', flush=True)
                 break
+        # env.data_save_exl()
 
 if __name__ == '__main__':
-    rl_loop('./model/linear best_model.pth')
+    rl_loop('./model/func_sin.pth')

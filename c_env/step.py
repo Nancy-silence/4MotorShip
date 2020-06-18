@@ -11,7 +11,7 @@ class StructPointer(Structure):
     # list[tuple("key", value_type)]
     _fields_ = [("array", c_double * 10)]
 
-def step(cur_state, action):
+def step(cur_state, action, time_interval):
 
     # 通过CDLL加载.so文件为python的module
     sim = CDLL('./Sim.dll')
@@ -20,7 +20,7 @@ def step(cur_state, action):
     pyarray = np.append(cur_state,action).tolist()
     x = (c_double * len(pyarray))(*pyarray)
     # time
-    time = c_double(0.1)
+    time = c_double(time_interval)
 
     # 指定函数返回类型，否则会默认为int
     sim.my_integrate.restype = POINTER(StructPointer)
@@ -30,7 +30,7 @@ def step(cur_state, action):
 
     # 获取返回值中的array，取前6项为状态，注意.contents
     ret_array = result.contents.array[0:6]
-    # print(f'b_fai:{ret_array[2]}')
+    # print(f'theta_init: {ret_array[2]}')
     # 对φ角进行修正，到范围[-pi,pi]内
     remainder_fai = ret_array[2] % (2 *math.pi)
     if abs(remainder_fai) <= math.pi:
@@ -38,7 +38,7 @@ def step(cur_state, action):
     else:
         fai = -(2 * math.pi - abs(remainder_fai)) if remainder_fai > 0 else 2 * math.pi - abs(remainder_fai)
     ret_array[2] = fai
-    # print(f'fai:{ret_array[2]}')
+    # print(f'theta: {ret_array[2]}')
     # print('')
 
     # for param in ret_array:
