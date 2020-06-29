@@ -51,7 +51,7 @@ def rl_loop(model_path=False, render=True):
             if done:
                 print(f'episode: {e}, cum_reward: {cum_reward}', flush=True)
                 break
-        # env.data_save_exl()
+        env.data_save_exl()
 
 if __name__ == '__main__':
-    rl_loop('./model/func_sin.pth')
+    rl_loop('./model/func_sin best_model.pth')
