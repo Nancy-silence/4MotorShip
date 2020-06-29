@@ -45,8 +45,6 @@ def rl_loop(model_path=False):
             START_EPISODE = 0
 
         summary_writer = agent.get_summary_writer()
-        show_reward = 0
-        reward_his_save = []
 
         reward_his = []
         best_ave_reward = -1000
@@ -81,33 +79,27 @@ def rl_loop(model_path=False):
 
                 cur_state = next_state
                 cum_reward += reward
-                show_reward += reward
-
-                if agent.run_step % MAX_STEP == 0:
-                    summary_writer.add_scalar('cum_reward', show_reward, agent.run_step)
-                    show_reward = 0
 
                 if RENDER:
                     env.render()
                     time.sleep(0.1)
 
-                # done = done or step == MAX_STEP - 1
                 if done :
-                    reward_his.append(cum_reward)
+                    summary_writer.add_scalar('reward', cum_reward/(step+1), e+1)
                     print(f'episode: {e}, cum_reward: {cum_reward}, step_num:{step+1}', flush=True)
-                    reward_his_save.append([e, cum_reward, step+1])
+                    reward_his.append([e, cum_reward, step+1])
                     # if cum_reward > -10:
                     #     RENDER = True
                     break
 
             agent.save(e, env.target_trajectory)
-            if np.mean(reward_his[-min(10, len(reward_his)):]) > best_ave_reward:
-                best_ave_reward = np.mean(reward_his[-min(10, len(reward_his)):])
+            if np.mean([i[1] for i in reward_his[-min(10, len(reward_his)):]]) > best_ave_reward:
+                best_ave_reward = np.mean([i[1] for i in reward_his[-min(10, len(reward_his)):]])
                 agent.save(e, env.target_trajectory + ' best_model')
 
     except (KeyboardInterrupt,GracefulExitException):
-        reward_his_save = np.array(reward_his_save)
-        data_save_exl(reward_his_save)
+        reward_his = np.array(reward_his)
+        data_save_exl(reward_his)
 
 def data_save_exl(data_list):
     writer = pd.ExcelWriter('Reward.xlsx')
