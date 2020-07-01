@@ -166,7 +166,7 @@ class ASV(object):
         self.asv_his_v = [list(self.__velocity.data)]
         self.asv_his_motor = []
 
-        return self.__position.data, self.__velocity.data
+        return self.observation()
 
     def move(self):
         from c_env.step import step
@@ -182,7 +182,10 @@ class ASV(object):
         if self.measure_bias:
             self.__position.x = self.__position.x + np.random.normal(0, 0.02)
             self.__position.y = self.__position.y + np.random.normal(0, 0.02)
-            
+
+        return self.observation()
+
+    def observation(self):
         return self.__position.data, self.__velocity.data
     
 
