@@ -132,7 +132,6 @@ class ASV(object):
         self.time_interval = time_interval
         self.measure_bias = measure_bias
         self.__position = Dim3Position()
-        self.__position_bias = Dim3Position()
         self.__velocity = Dim3Velocity()
         self.__motor = Dim4Motor()
 
@@ -147,10 +146,6 @@ class ASV(object):
     @property
     def velocity(self):
         return self.__velocity
-
-    @property
-    def position_bias(self):
-        return self.__position_bias
 
     @property
     def motor(self):
@@ -171,9 +166,7 @@ class ASV(object):
         self.asv_his_v = [list(self.__velocity.data)]
         self.asv_his_motor = []
 
-        if self.measure_bias:
-            self.obs_add_bias()
-        return self.observation()
+        return self.__position.data, self.__velocity.data
 
     def move(self):
         from c_env.step import step
@@ -187,21 +180,10 @@ class ASV(object):
         self.asv_his_motor.append(list(self.__motor.data))
 
         if self.measure_bias:
-            self.obs_add_bias()
-        return self.observation()
-
-    def obs_add_bias(self):
-        # self.__position_bias.x = self.__position.x + (np.random.rand()-0.5)/50
-        # self.__position_bias.y = self.__position.y + (np.random.rand()-0.5)/50
-        self.__position_bias.x = self.__position.x + np.random.normal(0, 0.02)
-        self.__position_bias.y = self.__position.y + np.random.normal(0, 0.02)
-        self.__position_bias.theta = self.__position.theta
-
-    def observation(self):
-        if self.measure_bias:
-            return self.__position_bias.data, self.__velocity.data
-        else:
-            return self.__position.data, self.__velocity.data
+            self.__position.x = self.__position.x + np.random.normal(0, 0.02)
+            self.__position.y = self.__position.y + np.random.normal(0, 0.02)
+            
+        return self.__position.data, self.__velocity.data
     
 
     
