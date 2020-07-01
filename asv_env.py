@@ -145,7 +145,7 @@ class ASVEnv(gym.Env):
         plt.clf()
 
         # 绘制轨迹图
-        plt.subplot(2,2,1)
+        plt.subplot(3,2,1)
         # 绘制aim
         plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='aim')
         # 绘制asv
@@ -155,8 +155,15 @@ class ASVEnv(gym.Env):
         plt.title('x-y')
         plt.legend()
 
+        # 绘制误差ed图
+        plt.subplot(3,2,2)
+        aim_his_pos_fix = aim_his_pos[:-1]
+        ed = np.sqrt(np.sum(np.power((asv_his_pos[:,[0,1]] - aim_his_pos_fix[:,[0,1]]), 2), axis=1))
+        plt.plot(range(0, len(ed)), ed)
+        plt.title('ed')
+
         # 绘制action图
-        plt.subplot(2,2,2)
+        plt.subplot(3,2,3)
         plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
         plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
         plt.plot(range(0, len(action_his)), action_his[:,2], label='a3')
@@ -167,14 +174,14 @@ class ASVEnv(gym.Env):
         plt.legend()
 
         # 绘制theta对比图
-        plt.subplot(2,2,3)
+        plt.subplot(3,2,4)
         plt.plot(range(0, len(aim_his_pos)), aim_his_pos[:,2], label='aim')
         plt.plot(range(0, len(asv_his_pos)), asv_his_pos[:,2], label='asv')
         plt.title('theta')
         plt.legend()
 
         # 绘制asv的速度图
-        plt.subplot(2,2,4)
+        plt.subplot(3,2,5)
         plt.plot(range(0, len(asv_his_v)), asv_his_v[:,0], label='u_asv')
         plt.plot(range(0, len(aim_his_v)), aim_his_v[:,0], label='u_aim')
         plt.plot(range(0, len(asv_his_v)), asv_his_v[:,1], label='v_asv')
