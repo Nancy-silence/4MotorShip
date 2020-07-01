@@ -38,8 +38,6 @@ def step(cur_state, action, time_interval):
     else:
         fai = -(2 * math.pi - abs(remainder_fai)) if remainder_fai > 0 else 2 * math.pi - abs(remainder_fai)
     ret_array[2] = fai
-    # print(f'theta: {ret_array[2]}')
-    # print('')
 
     # for param in ret_array:
     #     print(param)
