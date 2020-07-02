@@ -7,9 +7,8 @@ import torch.nn.functional as F
 CUDA = torch.cuda.is_available()
 
 class ASVActorNet(nn.Module):
-    def __init__(self, n_states, n_actions, n_neurons=300, a_bound=1):
+    def __init__(self, n_states, n_actions, n_neurons=300):
         super().__init__()
-        self.bound = a_bound
 
         self.fc1 = nn.Linear(n_states, n_neurons)
         self.fc1.weight.data.normal_(0, 0.1)
@@ -22,14 +21,10 @@ class ASVActorNet(nn.Module):
         self.out = nn.Linear(150, n_actions)
         torch.nn.init.xavier_uniform_(self.out.weight.data, gain=1)
         torch.nn.init.uniform_(self.out.bias.data, 0, 0.5)
-        if CUDA:
-            self.bound = torch.FloatTensor([self.bound]).cuda()
-        else:
-            self.bound = torch.FloatTensor([self.bound])
 
     def forward(self, x):
         """
-        定义网络结构: 隐藏层1(100)->ReLU激活->隐藏层2(50)->ReLU激活->输出层->tanh激活->*bound 输出
+        定义网络结构: 隐藏层1(100)->ReLU激活->隐藏层2(50)->ReLU激活->输出层->tanh激活->输出∈(-1,1)
         """
         x = x.cuda() if CUDA else x
         x = self.fc1(x)
@@ -38,12 +33,11 @@ class ASVActorNet(nn.Module):
         x = F.relu(x)
         x = self.out(x)
         action_value = torch.tanh(x)
-        action_value = action_value * self.bound
         return action_value
 
 
 class ASVCriticNet(nn.Module):
-    def __init__(self, n_states, n_actions, n_neurons=300, a_bound=1):
+    def __init__(self, n_states, n_actions, n_neurons=300):
         super().__init__()
 
         self.fc1 = nn.Linear(n_states+n_actions, n_neurons)

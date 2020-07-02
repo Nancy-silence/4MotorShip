@@ -57,9 +57,10 @@ def rl_loop(model_path=False):
 
             for step in range(MAX_STEP):
 
-                action = agent.get_action_noise(cur_state)
+                action = agent.get_action(cur_state)
+                motor_noise = np.clip(env.asv.motor.data + action + agent.noise(), -a_bound, a_bound) 
 
-                next_state, reward, done, info = env.step(action)
+                next_state, reward, done, info = env.step(motor_noise)
 
                 if step == MAX_STEP - 1:
                     done = True

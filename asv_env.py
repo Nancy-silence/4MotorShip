@@ -65,7 +65,7 @@ class ASVEnv(gym.Env):
             return True
         return False
         
-    def get_reward(self, action):
+    def get_reward(self, motor):
         # # V5 备用R
         # del_d = self.d_before_a - self.d_after_a
         # if del_d >= 0 and self.del_theta < math.pi/2:
@@ -86,11 +86,11 @@ class ASVEnv(gym.Env):
         else:
             r2 = -1
 
-        sum_a = np.sum(np.power(action,2))
+        sum_a = np.sum(np.power(motor,2))
         r3 = 0.8 * (np.exp(-sum_a/100) - 1)
 
-        sum_del_action = np.sum(abs(self.del_action)) 
-        r4 = 0.6 * (np.exp(-np.power(sum_del_action, 2)/500) - 1)
+        sum_del_motor = np.sum(abs(self.del_motor)) 
+        r4 = 0.6 * (np.exp(-np.power(sum_del_motor, 2)/500) - 1)
 
         r =r1 + r2 + r3 + r4
         return r
@@ -98,7 +98,7 @@ class ASVEnv(gym.Env):
     def get_reward_punish(self):
         return -25
         
-    def step(self, action):
+    def step(self, motor):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
         aim_pos, aim_v= self.aim.observation()
         # 计算asv本步移动前和aim之间的距离
@@ -106,10 +106,10 @@ class ASVEnv(gym.Env):
         self.d_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
 
         # 获得本次action和上次action的差
-        self.del_action = action - self.asv.motor.data
+        self.del_motor = motor - self.asv.motor.data
 
         # 在获得action之后，让asv根据action移动
-        self.asv.motor = action
+        self.asv.motor = motor
         # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
 
@@ -127,7 +127,7 @@ class ASVEnv(gym.Env):
         if done:
             reward = self.get_reward_punish()
         else:
-            reward = self.get_reward(action)
+            reward = self.get_reward(motor)
         # 计算完奖励之后，可以移动aim坐标
         cur_aim_pos, cur_aim_v = self.aim.next_point()
         # 此时aim已经是下一个要追逐的点，可以计算state
@@ -164,10 +164,10 @@ class ASVEnv(gym.Env):
 
         # 绘制action图
         plt.subplot(3,2,3)
-        # plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
-        # plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
+        plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
+        plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
         plt.plot(range(0, len(action_his)), action_his[:,2], label='a3')
-        # plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
+        plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
         my_y_ticks = np.arange(-6, 7, 1)
         plt.yticks(my_y_ticks)
         plt.title('action')
