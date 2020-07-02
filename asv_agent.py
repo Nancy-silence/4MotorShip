@@ -49,8 +49,8 @@ class DDPG(object):
 
     def _build_net(self):
         n_states, n_actions = self.n_states, self.n_actions
-        self.actor_eval = ASVActorNet(n_states, n_actions, a_bound=self.bound)
-        self.actor_target = ASVActorNet(n_states, n_actions, a_bound=self.bound)
+        self.actor_eval = ASVActorNet(n_states, n_actions)
+        self.actor_target = ASVActorNet(n_states, n_actions)
         self.critic_eval = ASVCriticNet(n_states, n_actions)
         self.critic_target = ASVCriticNet(n_states, n_actions)
         self.actor_target.load_state_dict(self.actor_eval.state_dict())
@@ -76,7 +76,8 @@ class DDPG(object):
     def get_action(self, s):
         s = torch.unsqueeze(torch.FloatTensor(s), 0)
         action = self.actor_eval.forward(s).detach().cpu().numpy()
-        return action
+        self.run_step += 1
+        return action[0]
 
     def get_action_noise(self, state):
         action = self.get_action(state)
