@@ -164,10 +164,10 @@ class ASVEnv(gym.Env):
 
         # 绘制action图
         plt.subplot(3,2,3)
-        plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
-        plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
+        # plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
+        # plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
         plt.plot(range(0, len(action_his)), action_his[:,2], label='a3')
-        plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
+        # plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
         my_y_ticks = np.arange(-6, 7, 1)
         plt.yticks(my_y_ticks)
         plt.title('action')
