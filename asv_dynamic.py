@@ -125,12 +125,13 @@ class Dim4Motor(object):
 
 class ASV(object):
 
-    def __init__(self, time_interval = 0.1, measure_bias = False):
+    def __init__(self, time_interval = 0.1, measure_bias = False, motor_bound = 6):
         """
         @param: time_interval控制系统决策时间
         """
         self.time_interval = time_interval
         self.measure_bias = measure_bias
+        self.motor_bound = motor_bound
         self.__position = Dim3Position()
         self.__velocity = Dim3Velocity()
         self.__motor = Dim4Motor()

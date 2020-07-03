@@ -33,7 +33,7 @@ def rl_loop(model_path=False):
     try:
         RENDER = False
 
-        env = ASVEnv(target_trajectory='func_sin', measure_bias=True)
+        env = ASVEnv(target_trajectory='func_sin')
         s_dim = env.observation_space.shape[0]
         a_dim = env.action_space.shape[0]
         a_bound = env.action_space.high[0]
@@ -52,13 +52,13 @@ def rl_loop(model_path=False):
         for e in range(START_EPISODE, MAX_EPISODE):
             cur_state = env.reset()
             cum_reward = 0
-            noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.07)
-            agent.build_noise(0, 1.5 * noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
+            noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.05)
+            agent.build_noise(0, 0.2 * noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
 
             for step in range(MAX_STEP):
 
-                action = agent.get_action(cur_state)
-                motor_noise = np.clip(env.asv.motor.data + action + agent.noise(), -a_bound, a_bound) 
+                action = agent.get_action_noise(cur_state)
+                motor_noise = np.clip(env.asv.motor.data + action, -env.asv.motor_bound, env.asv.motor_bound) 
 
                 next_state, reward, done, info = env.step(motor_noise)
 
