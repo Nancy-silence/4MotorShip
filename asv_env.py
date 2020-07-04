@@ -31,7 +31,7 @@ class ASVEnv(gym.Env):
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(16,))
-        self.action_space = spaces.Box(low=-1, high=1, shape=(4,))
+        self.action_space = spaces.Box(low=-3, high=3, shape=(4,))
     
     def reset(self):
         """重设环境状态
@@ -88,7 +88,7 @@ class ASVEnv(gym.Env):
             r2 = -2
 
         sum_a = np.sum(np.power(motor,2))
-        r3 = 0.8 * (np.exp(-sum_a/100) - 1)
+        r3 = np.exp(-sum_a/100) - 1
 
         sum_del_motor = np.sum(abs(self.del_motor)) 
         r4 = 0.3 * (np.exp(-np.power(sum_del_motor, 2)/500) - 1)
@@ -97,7 +97,7 @@ class ASVEnv(gym.Env):
         return r
 
     def get_reward_punish(self):
-        return -25
+        return -35
         
     def step(self, motor):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
