@@ -29,7 +29,7 @@ class ASVEnv(gym.Env):
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(12,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(16,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
     
     def reset(self):
@@ -56,7 +56,7 @@ class ASVEnv(gym.Env):
         aim_theta = np.array([aim_pos[2]])
         delta_v = aim_v - asv_v
 
-        state = np.concatenate((asv_pos, asv_v, delta_pos, aim_theta, delta_v), axis=0)
+        state = np.concatenate((asv_pos, asv_v, delta_pos, aim_theta, delta_v, self.asv.motor.data), axis=0)
         return state
 
     def get_done(self):
@@ -89,8 +89,12 @@ class ASVEnv(gym.Env):
         sum_a = np.sum(np.power(action,2))
         r3 = 0.8 * (np.exp(-sum_a/100) - 1)
 
-        sum_del_action = np.sum(abs(self.del_action)) 
-        r4 = 0.6 * (np.exp(-np.power(sum_del_action, 2)/500) - 1)
+        motor_his = np.array(self.asv.asv_his_motor)
+        a_nearby = motor_his[-min(40, len(motor_his)):,:]
+        r4 = 0
+        for i in range(4):
+            std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
+            r4 += 0.5 * (np.exp(-0.3*std) - 1)
 
         r =r1 + r2 + r3 + r4
         return r
