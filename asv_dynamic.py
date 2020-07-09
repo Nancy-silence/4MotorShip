@@ -175,13 +175,13 @@ class ASV(object):
         self.__position.x, self.__position.y, self.__position.theta, \
             self.__velocity.u, self.__velocity.v, self.__velocity.r = next_obs
 
-        self.asv_his_pos.append(list(self.__position.data))
-        self.asv_his_v.append(list(self.__velocity.data))
-        self.asv_his_motor.append(list(self.__motor.data))
-
         if self.measure_bias:
             self.__position.x = self.__position.x + np.random.normal(0, 0.02)
             self.__position.y = self.__position.y + np.random.normal(0, 0.02)
+
+        self.asv_his_pos.append(list(self.__position.data))
+        self.asv_his_v.append(list(self.__velocity.data))
+        self.asv_his_motor.append(list(self.__motor.data))
 
         return self.observation()
 
