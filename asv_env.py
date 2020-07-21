@@ -29,7 +29,7 @@ class ASVEnv(gym.Env):
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(16,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(10,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
     
     def reset(self):
@@ -51,12 +51,16 @@ class ASVEnv(gym.Env):
         """获取当前环境状态:asv6个状态 和 aim-asv5个相对状态 和 aim_theta"""
         aim_pos, aim_v = self.aim.observation()
         asv_pos, asv_v = self.asv.observation()
+        aim_theta = aim_pos[2]
+        asv_theta = asv_pos[2]
         
         delta_pos = aim_pos[0:2] - asv_pos[0:2]
-        aim_theta = np.array([aim_pos[2]])
+        delta_theta = (0 - np.sign(aim_theta - asv_theta)) * (math.pi * 2 - abs(aim_theta - asv_theta)) if \
+            abs(aim_theta - asv_theta) > math.pi else aim_theta - asv_theta
+        delta_theta = np.array([delta_theta])
         delta_v = aim_v - asv_v
 
-        state = np.concatenate((asv_pos, asv_v, delta_pos, aim_theta, delta_v, self.asv.motor.data), axis=0)
+        state = np.concatenate((delta_pos, delta_theta, delta_v, self.asv.motor.data), axis=0)
         return state
 
     def get_done(self):
@@ -66,37 +70,31 @@ class ASVEnv(gym.Env):
         return False
         
     def get_reward(self, action):
-        # # V5 备用R
-        # del_d = self.d_before_a - self.d_after_a
-        # if del_d >= 0 and self.del_theta < math.pi/2:
-        #     r1 = np.power(2, - 10 * self.d_after_a)
-        # else:
-        #     r1 = -1
-
-        # r2 = np.power(math.e, - 5 * self.del_theta) - 1
-
-        # # V3 R
-        r1 = np.power(2, - 10 * self.d_after_a) - 1
-
+        
+        state = self.get_state()[0:6]
+        error = np.sum(np.array([20,20,5,0.1,0.1,0.1]) * np.power(state,2))
         # 计算asv移动前后和此时aim距离的差
         del_d_target = self.d_before_a - self.d_after_a
 
-        if del_d_target >= 0 and self.del_theta < math.pi/2:
-            r2 = np.power(math.e, - 7 * (self.del_theta + self.del_d))
+        if del_d_target >= 0:
+            r1 = np.exp(-error)
         else:
-            r2 = -1
+            r1 = -1
+        
 
         sum_a = np.sum(np.power(action,2))
-        r3 = 0.8 * (np.exp(-sum_a/100) - 1)
+        r3 = 0.5 * (np.exp(-sum_a/100) - 1)
 
         motor_his = np.array(self.asv.asv_his_motor)
         a_nearby = motor_his[-min(40, len(motor_his)):,:]
         r4 = 0
         for i in range(4):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.5 * (np.exp(-0.3*std) - 1)
+            r4 += 0.25 * (np.exp(-std) - 1)
 
-        r =r1 + r2 + r3 + r4
+        r =r1 + r3 + r4
+        # print(f'error:{error}, r1:{r1}, r3:{r3}, r4:{r4}, r:{r}')
+
         return r
 
     def get_reward_punish(self):
@@ -105,13 +103,9 @@ class ASVEnv(gym.Env):
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
         aim_pos, aim_v= self.aim.observation()
-        # 计算asv本步移动前和aim之间的距离
+         # 计算asv本步移动前和aim之间的距离
         asv_pos, asv_v= self.asv.observation()
         self.d_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
-
-        # 获得本次action和上次action的差
-        self.del_action = action - self.asv.motor.data
-
         # 在获得action之后，让asv根据action移动
         self.asv.motor = action
         # 让asv移动后，当前asv坐标更新为移动后的坐标
@@ -119,11 +113,6 @@ class ASVEnv(gym.Env):
 
         # 计算asv移动后和aim之间的距离
         self.d_after_a = math.sqrt(np.sum(np.power((cur_asv_pos[0:2] - aim_pos[0:2]), 2)))
-        # 及移动后asv艏向角和此时目标轨迹上同x点的夹角差del_theta和距离差del_d
-        trajectory_point = self.aim.trajectory_point(cur_asv_pos[0])
-        self.del_d = abs(trajectory_point[1] - cur_asv_pos[1])
-        self.del_theta = abs(trajectory_point[2]-cur_asv_pos[2]) if abs(trajectory_point[2]-cur_asv_pos[2]) < math.pi\
-            else math.pi * 2 - abs(trajectory_point[2]-cur_asv_pos[2])
         
         # 奖励应该是对于当前aim，以及移动以后的asv计算
         done = self.get_done()

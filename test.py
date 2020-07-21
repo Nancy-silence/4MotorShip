@@ -73,8 +73,7 @@
 # plt.show()
 
 import numpy as np
-a = np.arange(20)
-b = a.reshape((4,5))
-print(b)
-print(b[:-1])
+error = np.array([1,2,3,4,5,6]) * np.array([1,1,1,1,1,1])
+print(error)
+
     
