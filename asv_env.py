@@ -206,3 +206,62 @@ class ASVEnv(gym.Env):
         a_data.to_excel(writer, 'action', float_format='%.5f')
         writer.save()
         writer.close()
+
+    def pointToSegDist(self,pointX,pointY,lineX1,lineY1,lineX2,lineY2):
+        """Distance between point and segment. 
+        If the intersection of the perpendicular line from th point to the segment doesn't exist,
+        return the distance from the point to the nearst endpoint of segment.
+
+        :param pointX,pointY : the point
+        :param lineX1,lineY1 : one endpoint of segment
+        :param lineX2,lineY2 : the other endpoint of segment
+        """
+        cross = (lineX2 - lineX1) * (pointX - lineX1) + (lineY2 - lineY1) * (pointY - lineY1) #|AB*AP|：矢量乘
+        if (cross <= 0):
+            return math.sqrt((pointX - lineX1) * (pointX - lineX1) + (pointY - lineY1) * (pointY - lineY1)) #是|AP|：矢量的大小
+        
+        d2 = (lineX2 - lineX1) * (lineX2 - lineX1) + (lineY2 - lineY1) * (lineY2 - lineY1) #|AB|^2：矢量AB的大小的平方
+        if (cross >= d2):
+            return math.sqrt((pointX - lineX2) * (pointX - lineX2) + (pointY - lineY2) * (pointY - lineY2)) #是|BP|：矢量的大小
+        
+        r = cross / d2 #相似三角形原理求出c点的坐标
+        px = lineX1 + (lineX2 - lineX1) * r
+        py = lineY1 + (lineY2 - lineY1) * r
+        return math.sqrt((pointX - px) * (pointX - px) + (py - pointY) * (py - pointY))
+    
+    def pointToLineDist(self,pointX,pointY,lineX1,lineY1,lineX2,lineY2):
+        """Distance between point and line. The line is defined by two mark point on it.
+        """
+        a=lineY2-lineY1
+        b=lineX1-lineX2
+        c=lineX2*lineY1-lineX1*lineY2
+        dis=(math.fabs(a*pointX+b*pointY+c))/(math.pow(a*a+b*b,0.5))
+        return dis
+    
+    def pointLineSide(self,pointX,pointY,lineX1,lineY1,lineX2,lineY2):
+        """Judge the point is on which side of the directional line.
+
+        If the point can rotate clockwise to the line, return positive number.
+        If the point can rotate counterclockwise to the line, return negative number.
+        If the point is on the line, return zero.
+
+        :param pointX,pointY : the point
+        :param lineX1,lineY1 : starting point of the line vector
+        :param lineX2,lineY2 : ending point of the line vector
+        """
+        s = (lineX1-pointX)*(lineY2-pointY)-(lineY1-pointY)*(lineX2-pointX)
+        return s
+
+    def targetCouseAngle(self,pointX,pointY,r,lineX1,lineY1,lineX2,lineY2):
+        fai_path = math.atan2((lineY2-lineY1), (lineX2-lineX1))
+        side = self.pointLineSide(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
+        d = self.pointToLineDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
+        adjust_angle = math.asin(d / r)
+        if side > 0:
+            target_angle = fai_path - adjust_angle
+        elif side < 0:
+            target_angle = fai_path + adjust_angle
+        else:
+            target_angle = fai_path
+        return target_angle
+    
