@@ -88,12 +88,12 @@ class ASVEnv(gym.Env):
         del_l = self.l_before_a - l
 
         if del_l > 0:
-            r_l = 1/(1+np.exp(-100*del_l)) - 0.5
+            r_l = np.power(2, -10*l) - 1
         else:
-            r_l = -1
+            r_l = -2
 
         r1 = -d + 0.5 * math.cos(del_theta) + r_l
-        # print(f'd:{d}, del_theta:{del_theta}, del_l:{del_l}, del_l_r:{a}')
+        print(f'd:{d}, del_theta:{del_theta}, r_l:{r_l}, l:{l}')
 
         error_v = 0.1 * np.power(del_u,2) + 20 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
@@ -106,7 +106,7 @@ class ASVEnv(gym.Env):
         r4 = 0
         for i in range(4):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.25 * (np.exp(-std) - 1)
+            r4 += 0.05 * (np.exp(-std) - 1)
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
