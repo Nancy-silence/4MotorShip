@@ -137,4 +137,4 @@ def targetCouseAngle(pointX,pointY,r,lineX1,lineY1,lineX2,lineY2):
     return target_angle
 
 if __name__ == '__main__':
-    print(targetCouseAngle(1,2,2,2,2,1,1))
+    print(targetCouseAngle(1.5,1.5,0.5,1,1,2,1))

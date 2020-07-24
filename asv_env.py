@@ -26,6 +26,7 @@ class ASVEnv(gym.Env):
         self.interval = interval
         self.asv = ASV(self.interval, measure_bias)
         self.aim = MovePoint(self.interval, self.target_trajectory, ud)
+        self.die_r = 0.5
 
         plt.ion()
 
@@ -48,39 +49,54 @@ class ASVEnv(gym.Env):
         return self.get_state()
 
     def get_state(self):
-        """获取当前环境状态:asv6个状态 和 aim-asv5个相对状态 和 aim_theta"""
-        aim_pos, aim_v = self.aim.observation()
-        asv_pos, asv_v = self.asv.observation()
-        aim_theta = aim_pos[2]
-        asv_theta = asv_pos[2]
-        
-        delta_pos = aim_pos[0:2] - asv_pos[0:2]
-        delta_theta = (0 - np.sign(aim_theta - asv_theta)) * (math.pi * 2 - abs(aim_theta - asv_theta)) if \
-            abs(aim_theta - asv_theta) > math.pi else aim_theta - asv_theta
-        delta_theta = np.array([delta_theta])
-        delta_v = aim_v - asv_v
+        """S: d, del_theta, l, del_u, del_v, del_r, a1, a2, a3, a4 
 
-        state = np.concatenate((delta_pos, delta_theta, delta_v, self.asv.motor.data), axis=0)
+        d : diatance between asv and line which defined by last aim point and now aim point 
+
+        del_theta: difference between target course angle course angle of asv(clockwise is positive) 
+
+        l: distance between asv and now aim point
+        """
+        aim_pos, aim_v = self.aim.observation()
+        aim_last_pos, aim_last_v = self.aim.last_point()
+        asv_pos, asv_v = self.asv.observation()
+
+        d = self.pointToLineDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+
+        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.die_r,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        asv_theta = asv_pos[2]
+        del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
+            abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
+
+        l = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
+
+        a = np.array([d, del_theta, l])
+        delta_v = aim_v - asv_v
+        state = np.concatenate((a, delta_v, self.asv.motor.data), axis=0)
+
         return state
 
     def get_done(self):
-        """对局结束：移动后的船不在目标点周围1m内"""
-        if self.d_after_a > 1:
+        """If after asv take follow step the distance between asv and aim > r, announce episode DONE"""
+        if self.l_after_a > self.die_r:
             return True
         return False
         
     def get_reward(self, action):
         
-        state = self.get_state()[0:6]
-        error = np.sum(np.array([20,20,5,0.1,0.1,0.1]) * np.power(state,2))
-        # 计算asv移动前后和此时aim距离的差
-        del_d_target = self.d_before_a - self.d_after_a
+        d,del_theta,l,del_u,del_v,del_r = self.get_state()[0:6]
+        del_l = self.l_before_a - l
 
-        if del_d_target >= 0:
-            r1 = np.exp(-error)
+        if del_l > 0:
+            r_l = 1/(1+np.exp(-100*del_l)) - 0.5
         else:
-            r1 = -1
-        
+            r_l = -1
+
+        r1 = -d + 0.5 * math.cos(del_theta) + r_l
+        # print(f'd:{d}, del_theta:{del_theta}, del_l:{del_l}, del_l_r:{a}')
+
+        error_v = 0.1 * np.power(del_u,2) + 20 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
+        r2 = np.exp(-3 * error_v) - 1
 
         sum_a = np.sum(np.power(action,2))
         r3 = 0.5 * (np.exp(-sum_a/100) - 1)
@@ -92,8 +108,9 @@ class ASVEnv(gym.Env):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
             r4 += 0.25 * (np.exp(-std) - 1)
 
-        r =r1 + r3 + r4
-        # print(f'error:{error}, r1:{r1}, r3:{r3}, r4:{r4}, r:{r}')
+        # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
+
+        r =r1 + r2 + r3 + r4
 
         return r
 
@@ -105,14 +122,14 @@ class ASVEnv(gym.Env):
         aim_pos, aim_v= self.aim.observation()
          # 计算asv本步移动前和aim之间的距离
         asv_pos, asv_v= self.asv.observation()
-        self.d_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
+        self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
         self.asv.motor = action
         # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
 
         # 计算asv移动后和aim之间的距离
-        self.d_after_a = math.sqrt(np.sum(np.power((cur_asv_pos[0:2] - aim_pos[0:2]), 2)))
+        self.l_after_a = math.sqrt(np.sum(np.power((cur_asv_pos[0:2] - aim_pos[0:2]), 2)))
         
         # 奖励应该是对于当前aim，以及移动以后的asv计算
         done = self.get_done()
@@ -256,7 +273,10 @@ class ASVEnv(gym.Env):
         fai_path = math.atan2((lineY2-lineY1), (lineX2-lineX1))
         side = self.pointLineSide(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
         d = self.pointToLineDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
-        adjust_angle = math.asin(d / r)
+        if d/r >1 : 
+            adjust_angle = math.asin(1)
+        else:
+            adjust_angle = math.asin(d / r)
         if side > 0:
             target_angle = fai_path - adjust_angle
         elif side < 0:
