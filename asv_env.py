@@ -26,11 +26,11 @@ class ASVEnv(gym.Env):
         self.interval = interval
         self.asv = ASV(self.interval, measure_bias)
         self.aim = MovePoint(self.interval, self.target_trajectory, ud)
-        self.die_r = 0.5
+        self.die_r = 1
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(10,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
     
     def reset(self):
@@ -61,18 +61,18 @@ class ASVEnv(gym.Env):
         aim_last_pos, aim_last_v = self.aim.last_point()
         asv_pos, asv_v = self.asv.observation()
 
-        # d = self.pointToLineDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        d = self.pointToLineDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
 
-        # target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.die_r,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
-        # asv_theta = asv_pos[2]
-        # del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
-        #     abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
+        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.die_r,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        asv_theta = asv_pos[2]
+        del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
+            abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
 
-        # l = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
+        l = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
 
-        # a = np.array([d, del_theta, l])
+        a = np.array([d, del_theta, l])
         delta_v = aim_v - asv_v
-        state = np.concatenate((aim_last_pos[0:2], aim_pos[0:2], asv_pos[0:2], delta_v, self.asv.motor.data), axis=0)
+        state = np.concatenate((a, delta_v, self.asv.motor.data), axis=0)
 
         return state
 
@@ -83,23 +83,8 @@ class ASVEnv(gym.Env):
         return False
         
     def get_reward(self, action):
-
-        aim_pos, aim_v = self.aim.observation()
-        aim_last_pos, aim_last_v = self.aim.last_point()
-        asv_pos, asv_v = self.asv.observation()
-
-        d = self.pointToLineDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
-
-        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.die_r,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
-        asv_theta = asv_pos[2]
-        del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
-            abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
-
-        l = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         
-        del_u,del_v,del_r = aim_v - asv_v
-
-        
+        d,del_theta,l,del_u,del_v,del_r = self.get_state()[0:6]
         del_l = self.l_before_a - l
 
         if del_l > 0:
