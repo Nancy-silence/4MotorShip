@@ -30,7 +30,7 @@ class ASVEnv(gym.Env):
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(10,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(14,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
     
     def reset(self):
@@ -61,18 +61,12 @@ class ASVEnv(gym.Env):
         aim_last_pos, aim_last_v = self.aim.last_point()
         asv_pos, asv_v = self.asv.observation()
 
-        d = self.pointToLineDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
-
-        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.die_r,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
-        asv_theta = asv_pos[2]
-        del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
-            abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
+        d = self.pointToSegDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
 
         l = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
 
-        a = np.array([d, del_theta, l])
-        delta_v = aim_v - asv_v
-        state = np.concatenate((a, delta_v, self.asv.motor.data), axis=0)
+        a = np.array([d, l, asv_pos[2], aim_pos[2]])
+        state = np.concatenate((a, asv_v, aim_v, self.asv.motor.data), axis=0)
 
         return state
 
@@ -83,19 +77,36 @@ class ASVEnv(gym.Env):
         return False
         
     def get_reward(self, action):
+
+        aim_pos, aim_v = self.aim.observation()
+        aim_last_pos, aim_last_v = self.aim.last_point()
+        asv_pos, asv_v = self.asv.observation()
+
+        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.die_r,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        asv_theta = asv_pos[2]
+        del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
+            abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
+        print(f'target_theta:{target_theta}, asv_theta:{asv_theta}, del_theta:{del_theta}')
         
-        d,del_theta,l,del_u,del_v,del_r = self.get_state()[0:6]
+        d,l = self.get_state()[0:2]
+        del_u,del_v,del_r = aim_v - asv_v
+
         del_l = self.l_before_a - l
 
         if del_l > 0:
             r_l = np.power(2, -10*l) - 1
         else:
             r_l = -2
+        
+        if del_theta > math.pi/2:
+            r_theta = -5
+        else:
+            r_theta = math.cos(del_theta)
 
-        r1 = -d + 0.5 * math.cos(del_theta) + r_l
+        r1 = -5 * d + 0.2 * r_theta + r_l
         # print(f'd:{d}, del_theta:{del_theta}, r_l:{r_l}, l:{l}')
 
-        error_v = 0.1 * np.power(del_u,2) + 20 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
+        error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
 
         sum_a = np.sum(np.power(action,2))
@@ -115,7 +126,7 @@ class ASVEnv(gym.Env):
         return r
 
     def get_reward_punish(self):
-        return -25
+        return -30
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
