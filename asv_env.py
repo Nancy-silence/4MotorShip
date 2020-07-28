@@ -26,7 +26,7 @@ class ASVEnv(gym.Env):
         self.interval = interval
         self.asv = ASV(self.interval, measure_bias)
         self.aim = MovePoint(self.interval, self.target_trajectory, ud)
-        self.die_r = 1
+        self.radius = 0.5
 
         plt.ion()
 
@@ -60,8 +60,9 @@ class ASVEnv(gym.Env):
         aim_pos, aim_v = self.aim.observation()
         aim_last_pos, aim_last_v = self.aim.last_point()
         asv_pos, asv_v = self.asv.observation()
+        print(f'asv_pos:{asv_pos[0:2]},aim_pos:{aim_pos[0:2]}')
 
-        d = self.pointToSegDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        d = self.pointToLineDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
 
         l = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
 
@@ -72,7 +73,7 @@ class ASVEnv(gym.Env):
 
     def get_done(self):
         """If after asv take follow step the distance between asv and aim > r, announce episode DONE"""
-        if self.l_after_a > self.die_r:
+        if self.l_after_a > 1:
             return True
         return False
         
@@ -82,35 +83,37 @@ class ASVEnv(gym.Env):
         aim_last_pos, aim_last_v = self.aim.last_point()
         asv_pos, asv_v = self.asv.observation()
 
-        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.die_r,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.radius,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
         asv_theta = asv_pos[2]
         del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
             abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
-        print(f'target_theta:{target_theta}, asv_theta:{asv_theta}, del_theta:{del_theta}')
+        # print(f'target_theta:{target_theta}, asv_theta:{asv_theta}, del_theta:{del_theta}')
         
         d,l = self.get_state()[0:2]
         del_u,del_v,del_r = aim_v - asv_v
+    
+        r_d = np.power(2,-10*d) - 1
 
         del_l = self.l_before_a - l
 
         if del_l > 0:
-            r_l = np.power(2, -10*l) - 1
+            r_l = -2 * l
         else:
-            r_l = -2
+            r_l = -4
         
         if del_theta > math.pi/2:
             r_theta = -5
         else:
             r_theta = math.cos(del_theta)
 
-        r1 = -5 * d + 0.2 * r_theta + r_l
-        # print(f'd:{d}, del_theta:{del_theta}, r_l:{r_l}, l:{l}')
+        r1 = 0.5 * r_d + 0.5 * r_theta + r_l
+        # print(f'd:{d}, r_d:{r_d}, del_theta:{del_theta}, r_theta:{r_theta}, r_l:{r_l}, l:{l}')
 
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
 
         sum_a = np.sum(np.power(action,2))
-        r3 = 0.5 * (np.exp(-sum_a/100) - 1)
+        r3 = np.exp(-sum_a/100) - 1
 
         motor_his = np.array(self.asv.asv_his_motor)
         a_nearby = motor_his[-min(40, len(motor_his)):,:]
@@ -126,7 +129,7 @@ class ASVEnv(gym.Env):
         return r
 
     def get_reward_punish(self):
-        return -30
+        return -25
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点

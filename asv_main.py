@@ -90,8 +90,17 @@ def rl_loop(model_path=False):
                     break
 
             agent.save(e, env.target_trajectory)
-            if np.mean([i[1] for i in reward_his[-min(10, len(reward_his)):]]) > best_ave_reward:
-                best_ave_reward = np.mean([i[1] for i in reward_his[-min(10, len(reward_his)):]])
+
+            signal = True
+            cumreward_sum = 0
+            for i in reward_his[-min(10, len(reward_his)):]:
+                if i[2] != MAX_STEP:
+                    signal = False
+                    break
+                else:
+                    cumreward_sum += i[1]
+            if signal and np.mean(cumreward_sum) > best_ave_reward:
+                best_ave_reward = np.mean(cumreward_sum)
                 agent.save(e, env.target_trajectory + ' best_model')
 
     except (KeyboardInterrupt,GracefulExitException):
