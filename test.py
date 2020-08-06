@@ -72,7 +72,7 @@
 # plt.plot(x,y)
 # plt.show()
 
-# import numpy as np
+import numpy as np
 # error = np.array([1,2,3,4,5,6])
 # print(error[-1])
 import math
@@ -136,5 +136,66 @@ def targetCouseAngle(pointX,pointY,r,lineX1,lineY1,lineX2,lineY2):
         target_angle = fai_path
     return target_angle
 
+def footOfPerpendicular(pointX,pointY,lineX1,lineY1,theta):
+    k = math.tan(theta)
+
+    if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
+        return lineX1,pointY
+    if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
+        return pointX,lineY1
+    if abs((lineY1-pointY)/(lineX1-pointX) - k) < 1e-6:
+        return pointX,pointY
+    
+    x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
+    y = k * (x - lineX1) + lineY1
+    return x,y
+
+def getDx(pointX,pointY,lineX1,lineY1,theta):
+    k = math.tan(theta)
+
+    if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
+        x,y = lineX1,pointY
+    if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
+        x,y = pointX,lineY1
+    if abs(pointY - (k*(pointX-lineX1) + lineY1)) < 1e-6:
+        x,y = pointX,pointY
+    else:
+        x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
+        y = k * (x - lineX1) + lineY1
+
+    foot_point_x, foot_point_y = x,y
+    dx = np.sqrt(np.power(foot_point_x - pointX,2) + np.power(foot_point_y - pointY,2))
+    signal_dx = (foot_point_x-lineX1) * (pointY-lineY1) - (foot_point_y-lineY1) * (pointX-lineX1)
+    if signal_dx > 0:
+        dx = dx
+    elif signal_dx < 0:
+        dx = -dx
+    else:
+        dx = 0
+    return dx
+
+def getDy(pointX,pointY,lineX1,lineY1,theta):
+    k = math.tan(theta)
+
+    if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
+        x,y = lineX1,pointY
+    if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
+        x,y = pointX,lineY1
+    if abs(pointY - (k*(pointX-lineX1) + lineY1)) < 1e-6:
+        x,y = pointX,pointY
+    else:
+        x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
+        y = k * (x - lineX1) + lineY1
+        
+    foot_point_x, foot_point_y = x,y
+
+    dy = np.sqrt(np.power(foot_point_x - lineX1,2) + np.power(foot_point_y - lineY1,2))
+    theta_foot_aim = math.atan2(foot_point_y - lineY1,foot_point_x - lineX1)
+    if abs(theta_foot_aim - theta) < 1e-6:   
+        dy = dy
+    else:
+        dy = -dy
+    return dy
+
 if __name__ == '__main__':
-    print(targetCouseAngle(1.5,1.5,0.5,1,1,2,1))
+    print(getDx(-1,-1,1,-1,-math.pi/4))

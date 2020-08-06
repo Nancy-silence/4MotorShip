@@ -58,18 +58,26 @@ class ASVEnv(gym.Env):
         l: distance between asv and now aim point
         """
         aim_pos, aim_v = self.aim.observation()
-        aim_last_pos, aim_last_v = self.aim.last_point()
         asv_pos, asv_v = self.asv.observation()
 
-        dy = self.pointToLineDist(asv_pos[0],asv_pos[1],aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        dx = self.getDx(asv_pos[0],asv_pos[1],aim_pos[0],aim_pos[1],aim_pos[2])
+        dy = self.getDy(asv_pos[0],asv_pos[1],aim_pos[0],aim_pos[1],aim_pos[2])
 
-        dx = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)) - np.power(dy,2))
+        # target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.radius,aim_pos[0],aim_pos[1],aim_pos[2])
+        # asv_theta = asv_pos[2]
+        # del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
+        #     abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
+        
+        # del_v = aim_v - asv_v
+
+        # temp = np.array([dx, dy, asv_pos[2], aim_pos[2]])
+        # # state = np.concatenate((temp, asv_v, del_v, self.asv.motor.data), axis=0)
+        # state = np.concatenate((temp, asv_v, aim_v, self.asv.motor.data), axis=0)
 
         del_theta_abs = math.atan2(aim_pos[1] - asv_pos[1], aim_pos[0] - asv_pos[0])
 
-        a = np.array([dy, dx, del_theta_abs, asv_pos[2], aim_pos[2]])
+        a = np.array([dx, dy, del_theta_abs, asv_pos[2], aim_pos[2]])
         state = np.concatenate((a, asv_v, aim_v, self.asv.motor.data), axis=0)
-
         return state
 
     def get_done(self):
@@ -81,12 +89,11 @@ class ASVEnv(gym.Env):
     def get_reward(self, action):
 
         aim_pos, aim_v = self.aim.observation()
-        aim_last_pos, aim_last_v = self.aim.last_point()
         asv_pos, asv_v = self.asv.observation()
 
         l = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
 
-        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.radius,aim_last_pos[0],aim_last_pos[1],aim_pos[0],aim_pos[1])
+        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.radius,aim_pos[0],aim_pos[1],aim_pos[2])
         asv_theta = asv_pos[2]
         del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
             abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
@@ -100,14 +107,22 @@ class ASVEnv(gym.Env):
             r_l = np.power(2, -10 * l) - 1
         else:
             r_l = -3
-        
+
+        # del_theta = abs(del_theta)
+        # if del_theta > math.pi/2:
+        #     # r_theta = -np.exp(3*(del_theta-math.pi))
+        #     r_theta = 2 * math.cos(del_theta)
+        # else:
+        #     # r_theta = np.exp(-3 * del_theta)
+        #     r_theta = math.cos(del_theta)
+
         if del_theta > math.pi/2:
             r_theta = -6
         else:
             r_theta = math.cos(del_theta)
 
         r1 = r_l + 0.5 * r_theta
-        # print(f'd:{d}, r_d:{r_d}, del_theta:{del_theta}, r_theta:{r_theta}, r_l:{r_l}, l:{l}')
+        # print(f'del_theta:{del_theta}, r_theta:{r_theta}, r_l:{r_l}, l:{l}')
 
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
@@ -283,19 +298,54 @@ class ASVEnv(gym.Env):
         s = (lineX1-pointX)*(lineY2-pointY)-(lineY1-pointY)*(lineX2-pointX)
         return s
 
-    def targetCouseAngle(self,pointX,pointY,r,lineX1,lineY1,lineX2,lineY2):
-        fai_path = math.atan2((lineY2-lineY1), (lineX2-lineX1))
-        side = self.pointLineSide(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
-        d = self.pointToLineDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
-        if d/r >1 : 
+    def footOfPOintPerpendicularToLine(self,pointX,pointY,lineX1,lineY1,theta):
+        k = math.tan(theta)
+
+        if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
+            return lineX1,pointY
+        if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
+            return pointX,lineY1
+        if abs(pointY - (k*(pointX-lineX1) + lineY1)) < 1e-6:   #点在直线上
+            return pointX,pointY
+        
+        x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
+        y = k * (x - lineX1) + lineY1
+        return x,y
+
+    def getDx(self,pointX,pointY,lineX1,lineY1,theta):
+        foot_point_x, foot_point_y = self.footOfPOintPerpendicularToLine(pointX,pointY,lineX1,lineY1,theta)
+        dx = np.sqrt(np.power(foot_point_x - pointX,2) + np.power(foot_point_y - pointY,2))
+        signal_dx = (foot_point_x-lineX1) * (pointY-lineY1) - (foot_point_y-lineY1) * (pointX-lineX1)
+        if signal_dx > 0:
+            dx = dx
+        elif signal_dx < 0:
+            dx = -dx
+        else:
+            dx = 0
+        return dx
+
+    def getDy(self,pointX,pointY,lineX1,lineY1,theta):
+        foot_point_x, foot_point_y = self.footOfPOintPerpendicularToLine(pointX,pointY,lineX1,lineY1,theta)
+        dy = np.sqrt(np.power(foot_point_x - lineX1,2) + np.power(foot_point_y - lineY1,2))
+        theta_foot_aim = math.atan2(foot_point_y - lineY1,foot_point_x - lineX1)
+        if abs(theta_foot_aim - theta) < 1e-6:   
+            dy = dy
+        else:
+            dy = -dy
+        return dy
+
+    def targetCouseAngle(self,pointX,pointY,r,lineX1,lineY1,theta):
+        d = self.getDx(pointX,pointY,lineX1,lineY1,theta)
+        if abs(d)/r >1 : 
             adjust_angle = math.asin(1)
         else:
-            adjust_angle = math.asin(d / r)
-        if side > 0:
-            target_angle = fai_path - adjust_angle
-        elif side < 0:
-            target_angle = fai_path + adjust_angle
+            adjust_angle = math.asin(abs(d) / r)
+
+        if abs(d) < 1e-6:
+            target_angle = theta
+        elif d < 0:
+            target_angle = theta - adjust_angle
         else:
-            target_angle = fai_path
+            target_angle = theta + adjust_angle
         return target_angle
-    
+     
