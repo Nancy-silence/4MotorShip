@@ -36,6 +36,7 @@ class MovePoint(object):
 
         self.aim_his_pos = [list(self.position)]
         self.aim_his_v = [list(self.velocity)]
+        return self.position , self.velocity
 
     def observation(self):
         return self.position, self.velocity
