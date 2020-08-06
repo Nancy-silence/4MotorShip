@@ -28,6 +28,10 @@ class ASVEnv(gym.Env):
         self.aim = MovePoint(self.interval, self.target_trajectory, ud)
         self.radius = 0.5
 
+        self.draw_ed = []
+        self.draw_aim_theta = []
+        self.draw_aim_v = []
+
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(15,))
@@ -40,12 +44,19 @@ class ASVEnv(gym.Env):
         """
         self.aim.reset()
         begin_pos, begin_v= self.aim.observation()
-        self.asv.reset_state(begin_pos)
+        asv_pos, asv_v = self.asv.reset_state(begin_pos)
+        self.draw_aim_theta.append(begin_pos[2])
+        self.draw_aim_v.append(begin_v)
+        self.draw_ed.append(math.sqrt(np.sum(np.power(asv_pos[0:2]-begin_pos[0:2],2))))
         self.aim.next_point()
     
         plt.ioff()
         plt.clf()
         plt.ion()
+
+        self.draw_ed = []
+        self.draw_aim_theta = []
+        self.draw_aim_v = []
         return self.get_state()
 
     def get_state(self):
@@ -167,8 +178,20 @@ class ASVEnv(gym.Env):
             reward = self.get_reward_punish()
         else:
             reward = self.get_reward(action)
+        
+        # draw数据准备
+        self.draw_aim_theta.append(aim_pos[2])
+        self.draw_aim_v.append(aim_v)
+        self.draw_ed.append(math.sqrt(np.sum(np.power(cur_asv_pos[0:2]-aim_pos[0:2],2))))
+
         # 计算完奖励之后，可以移动aim坐标
-        cur_aim_pos, cur_aim_v = self.aim.next_point()
+        while True:
+            cur_aim_pos, cur_aim_v = self.aim.next_point()
+            dy = self.getDy(cur_asv_pos[0],cur_asv_pos[1],cur_aim_pos[0],cur_aim_pos[1],cur_aim_pos[2])
+            if dy < 0:
+                break
+            else:
+                reward = reward - 1  #如果aim点需多次移动，每多移一次reward-1
         # 此时aim已经是下一个要追逐的点，可以计算state
         state = self.get_state()
 
@@ -176,7 +199,9 @@ class ASVEnv(gym.Env):
 
     def render(self):
         aim_his_pos = np.array(self.aim.aim_his_pos)
-        aim_his_v = np.array(self.aim.aim_his_v)
+        draw_aim_theta = np.array(self.draw_aim_theta)
+        draw_aim_v = np.array(self.draw_aim_v)
+        draw_ed = np.array(self.draw_ed)
         asv_his_pos = np.array(self.asv.asv_his_pos)
         asv_his_v = np.array(self.asv.asv_his_v)
         action_his = np.array(self.asv.asv_his_motor)
@@ -196,9 +221,7 @@ class ASVEnv(gym.Env):
 
         # 绘制误差ed图
         plt.subplot(3,2,2)
-        aim_his_pos_fix = aim_his_pos[:-1]
-        ed = np.sqrt(np.sum(np.power((asv_his_pos[:,[0,1]] - aim_his_pos_fix[:,[0,1]]), 2), axis=1))
-        plt.plot(range(0, len(ed)), ed)
+        plt.plot(range(0, len(draw_ed)), draw_ed)
         plt.title('ed')
 
         # 绘制action图
@@ -214,7 +237,7 @@ class ASVEnv(gym.Env):
 
         # 绘制theta对比图
         plt.subplot(3,2,4)
-        plt.plot(range(0, len(aim_his_pos)), aim_his_pos[:,2], label='aim')
+        plt.plot(range(0, len(draw_aim_theta)), draw_aim_theta, label='aim')
         plt.plot(range(0, len(asv_his_pos)), asv_his_pos[:,2], label='asv')
         plt.title('theta')
         plt.legend()
@@ -222,11 +245,11 @@ class ASVEnv(gym.Env):
         # 绘制asv的速度图
         plt.subplot(3,2,5)
         plt.plot(range(0, len(asv_his_v)), asv_his_v[:,0], label='u_asv')
-        plt.plot(range(0, len(aim_his_v)), aim_his_v[:,0], label='u_aim')
+        plt.plot(range(0, len(draw_aim_v)), draw_aim_v[:,0], label='u_aim')
         plt.plot(range(0, len(asv_his_v)), asv_his_v[:,1], label='v_asv')
-        plt.plot(range(0, len(aim_his_v)), aim_his_v[:,1], label='v_aim')
+        plt.plot(range(0, len(draw_aim_v)), draw_aim_v[:,1], label='v_aim')
         plt.plot(range(0, len(asv_his_v)), asv_his_v[:,2], label='r_asv')
-        plt.plot(range(0, len(aim_his_v)), aim_his_v[:,2], label='r_aim')
+        plt.plot(range(0, len(draw_aim_v)), draw_aim_v[:,2], label='r_aim')
         plt.title('u,v,r')
         plt.legend()
 
