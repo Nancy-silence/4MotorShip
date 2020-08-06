@@ -8,7 +8,7 @@ class MovePoint(object):
     def __init__(self, interval = 0.1, target_trajectory='linear', ud=0.3):
         self.interval = interval
         self.target_trajectory = target_trajectory
-        self.ud = 0.3
+        self.ud = ud
 
         if self.target_trajectory == 'linear':
             self.position = np.array([1, 5, 0])

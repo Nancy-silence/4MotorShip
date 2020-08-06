@@ -49,7 +49,7 @@ def rl_loop(model_path=False, render=True):
 
             done = done or step == MAX_STEP - 1
             if done:
-                print(f'episode: {e}, cum_reward: {cum_reward}, step:{step}', flush=True)
+                print(f'episode: {e}, cum_reward: {cum_reward}, step:{step+1}', flush=True)
                 break
         env.data_save_exl()
 
