@@ -59,143 +59,143 @@
 
 # 测试OU噪声和高斯噪声的区别及各自表现
 
-# from Utils import OUActionNoise,NormalActionNoise
-# import matplotlib.pyplot as plt
-# import numpy as np
-# noise = NormalActionNoise(0*np.ones(1), 0.02*np.ones(1))   
-# # noise = OUActionNoise(0*np.ones(1), 0.1*np.ones(1))
-# x = np.arange(1000)
-# y = []
-# for i in range(1000):
-#     y.append(noise())
-
-# plt.plot(x,y)
-# plt.show()
-
+from Utils import OUActionNoise,NormalActionNoise
+import matplotlib.pyplot as plt
 import numpy as np
-# error = np.array([1,2,3,4,5,6])
-# print(error[-1])
-import math
-def pointToSegDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2):
-    """Distance between point and segment. 
-    If the intersection of the perpendicular line from th point to the segment doesn't exist,
-    return the distance from the point to the nearst endpoint of segment.
+# noise = NormalActionNoise(0*np.ones(1), 0.02*np.ones(1))   
+noise = OUActionNoise(0*np.ones(1), 0.01*np.ones(1))
+x = np.arange(1000)
+y = []
+for i in range(1000):
+    y.append(noise())
 
-    :param pointX,pointY : the point
-    :param lineX1,lineY1 : one endpoint of segment
-    :param lineX2,lineY2 : the other endpoint of segment
-    """
-    cross = (lineX2 - lineX1) * (pointX - lineX1) + (lineY2 - lineY1) * (pointY - lineY1) #|AB*AP|：矢量乘
-    if (cross <= 0):
-        return math.sqrt((pointX - lineX1) * (pointX - lineX1) + (pointY - lineY1) * (pointY - lineY1)) #是|AP|：矢量的大小
+plt.plot(x,y)
+plt.show()
+
+# import numpy as np
+# # error = np.array([1,2,3,4,5,6])
+# # print(error[-1])
+# import math
+# def pointToSegDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2):
+#     """Distance between point and segment. 
+#     If the intersection of the perpendicular line from th point to the segment doesn't exist,
+#     return the distance from the point to the nearst endpoint of segment.
+
+#     :param pointX,pointY : the point
+#     :param lineX1,lineY1 : one endpoint of segment
+#     :param lineX2,lineY2 : the other endpoint of segment
+#     """
+#     cross = (lineX2 - lineX1) * (pointX - lineX1) + (lineY2 - lineY1) * (pointY - lineY1) #|AB*AP|：矢量乘
+#     if (cross <= 0):
+#         return math.sqrt((pointX - lineX1) * (pointX - lineX1) + (pointY - lineY1) * (pointY - lineY1)) #是|AP|：矢量的大小
     
-    d2 = (lineX2 - lineX1) * (lineX2 - lineX1) + (lineY2 - lineY1) * (lineY2 - lineY1) #|AB|^2：矢量AB的大小的平方
-    if (cross >= d2):
-        return math.sqrt((pointX - lineX2) * (pointX - lineX2) + (pointY - lineY2) * (pointY - lineY2)) #是|BP|：矢量的大小
+#     d2 = (lineX2 - lineX1) * (lineX2 - lineX1) + (lineY2 - lineY1) * (lineY2 - lineY1) #|AB|^2：矢量AB的大小的平方
+#     if (cross >= d2):
+#         return math.sqrt((pointX - lineX2) * (pointX - lineX2) + (pointY - lineY2) * (pointY - lineY2)) #是|BP|：矢量的大小
     
-    r = cross / d2 #相似三角形原理求出c点的坐标
-    px = lineX1 + (lineX2 - lineX1) * r
-    py = lineY1 + (lineY2 - lineY1) * r
-    return math.sqrt((pointX - px) * (pointX - px) + (py - pointY) * (py - pointY))
+#     r = cross / d2 #相似三角形原理求出c点的坐标
+#     px = lineX1 + (lineX2 - lineX1) * r
+#     py = lineY1 + (lineY2 - lineY1) * r
+#     return math.sqrt((pointX - px) * (pointX - px) + (py - pointY) * (py - pointY))
 
-def pointToLineDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2):
-    """Distance between point and line. The line is defined by two mark point on it.
-    """
-    a=lineY2-lineY1
-    b=lineX1-lineX2
-    c=lineX2*lineY1-lineX1*lineY2
-    dis=(math.fabs(a*pointX+b*pointY+c))/(math.pow(a*a+b*b,0.5))
-    return dis
+# def pointToLineDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2):
+#     """Distance between point and line. The line is defined by two mark point on it.
+#     """
+#     a=lineY2-lineY1
+#     b=lineX1-lineX2
+#     c=lineX2*lineY1-lineX1*lineY2
+#     dis=(math.fabs(a*pointX+b*pointY+c))/(math.pow(a*a+b*b,0.5))
+#     return dis
 
-def pointLineSide(pointX,pointY,lineX1,lineY1,lineX2,lineY2):
-    """Judge the point is on which side of the directional line.
+# def pointLineSide(pointX,pointY,lineX1,lineY1,lineX2,lineY2):
+#     """Judge the point is on which side of the directional line.
 
-    If the point can rotate clockwise to the line, return positive number.
-    If the point can rotate counterclockwise to the line, return negative number.
-    If the point is on the line, return zero.
+#     If the point can rotate clockwise to the line, return positive number.
+#     If the point can rotate counterclockwise to the line, return negative number.
+#     If the point is on the line, return zero.
 
-    :param pointX,pointY : the point
-    :param lineX1,lineY1 : starting point of the line vector
-    :param lineX2,lineY2 : ending point of the line vector
-    """
-    s = (lineX1-pointX)*(lineY2-pointY)-(lineY1-pointY)*(lineX2-pointX)
-    return s
+#     :param pointX,pointY : the point
+#     :param lineX1,lineY1 : starting point of the line vector
+#     :param lineX2,lineY2 : ending point of the line vector
+#     """
+#     s = (lineX1-pointX)*(lineY2-pointY)-(lineY1-pointY)*(lineX2-pointX)
+#     return s
 
-def targetCouseAngle(pointX,pointY,r,lineX1,lineY1,lineX2,lineY2):
-    fai_path = math.atan2((lineY2-lineY1), (lineX2-lineX1))
-    print(fai_path)
-    side = pointLineSide(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
-    d = pointToLineDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
-    adjust_angle = math.asin(d / r)
-    print(adjust_angle)
-    if side > 0:
-        target_angle = fai_path - adjust_angle
-    elif side < 0:
-        target_angle = fai_path + adjust_angle
-    else:
-        target_angle = fai_path
-    return target_angle
+# def targetCouseAngle(pointX,pointY,r,lineX1,lineY1,lineX2,lineY2):
+#     fai_path = math.atan2((lineY2-lineY1), (lineX2-lineX1))
+#     print(fai_path)
+#     side = pointLineSide(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
+#     d = pointToLineDist(pointX,pointY,lineX1,lineY1,lineX2,lineY2)
+#     adjust_angle = math.asin(d / r)
+#     print(adjust_angle)
+#     if side > 0:
+#         target_angle = fai_path - adjust_angle
+#     elif side < 0:
+#         target_angle = fai_path + adjust_angle
+#     else:
+#         target_angle = fai_path
+#     return target_angle
 
-def footOfPerpendicular(pointX,pointY,lineX1,lineY1,theta):
-    k = math.tan(theta)
+# def footOfPerpendicular(pointX,pointY,lineX1,lineY1,theta):
+#     k = math.tan(theta)
 
-    if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
-        return lineX1,pointY
-    if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
-        return pointX,lineY1
-    if abs((lineY1-pointY)/(lineX1-pointX) - k) < 1e-6:
-        return pointX,pointY
+#     if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
+#         return lineX1,pointY
+#     if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
+#         return pointX,lineY1
+#     if abs((lineY1-pointY)/(lineX1-pointX) - k) < 1e-6:
+#         return pointX,pointY
     
-    x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
-    y = k * (x - lineX1) + lineY1
-    return x,y
+#     x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
+#     y = k * (x - lineX1) + lineY1
+#     return x,y
 
-def getDx(pointX,pointY,lineX1,lineY1,theta):
-    k = math.tan(theta)
+# def getDx(pointX,pointY,lineX1,lineY1,theta):
+#     k = math.tan(theta)
 
-    if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
-        x,y = lineX1,pointY
-    if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
-        x,y = pointX,lineY1
-    if abs(pointY - (k*(pointX-lineX1) + lineY1)) < 1e-6:
-        x,y = pointX,pointY
-    else:
-        x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
-        y = k * (x - lineX1) + lineY1
+#     if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
+#         x,y = lineX1,pointY
+#     if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
+#         x,y = pointX,lineY1
+#     if abs(pointY - (k*(pointX-lineX1) + lineY1)) < 1e-6:
+#         x,y = pointX,pointY
+#     else:
+#         x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
+#         y = k * (x - lineX1) + lineY1
 
-    foot_point_x, foot_point_y = x,y
-    dx = np.sqrt(np.power(foot_point_x - pointX,2) + np.power(foot_point_y - pointY,2))
-    signal_dx = (foot_point_x-lineX1) * (pointY-lineY1) - (foot_point_y-lineY1) * (pointX-lineX1)
-    if signal_dx > 0:
-        dx = dx
-    elif signal_dx < 0:
-        dx = -dx
-    else:
-        dx = 0
-    return dx
+#     foot_point_x, foot_point_y = x,y
+#     dx = np.sqrt(np.power(foot_point_x - pointX,2) + np.power(foot_point_y - pointY,2))
+#     signal_dx = (foot_point_x-lineX1) * (pointY-lineY1) - (foot_point_y-lineY1) * (pointX-lineX1)
+#     if signal_dx > 0:
+#         dx = dx
+#     elif signal_dx < 0:
+#         dx = -dx
+#     else:
+#         dx = 0
+#     return dx
 
-def getDy(pointX,pointY,lineX1,lineY1,theta):
-    k = math.tan(theta)
+# def getDy(pointX,pointY,lineX1,lineY1,theta):
+#     k = math.tan(theta)
 
-    if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
-        x,y = lineX1,pointY
-    if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
-        x,y = pointX,lineY1
-    if abs(pointY - (k*(pointX-lineX1) + lineY1)) < 1e-6:
-        x,y = pointX,pointY
-    else:
-        x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
-        y = k * (x - lineX1) + lineY1
+#     if abs(abs(theta) - math.pi/2) < 1e-6:  # 直线垂直于x轴
+#         x,y = lineX1,pointY
+#     if abs(theta - math.pi) < 1e-6 or abs(theta - 0.0) < 1e-6:   #直线垂直于y轴
+#         x,y = pointX,lineY1
+#     if abs(pointY - (k*(pointX-lineX1) + lineY1)) < 1e-6:
+#         x,y = pointX,pointY
+#     else:
+#         x = (np.power(k,2) * lineX1 + k * (pointY - lineY1) + pointX) / (np.power(k,2) + 1)
+#         y = k * (x - lineX1) + lineY1
         
-    foot_point_x, foot_point_y = x,y
+#     foot_point_x, foot_point_y = x,y
 
-    dy = np.sqrt(np.power(foot_point_x - lineX1,2) + np.power(foot_point_y - lineY1,2))
-    theta_foot_aim = math.atan2(foot_point_y - lineY1,foot_point_x - lineX1)
-    if abs(theta_foot_aim - theta) < 1e-6:   
-        dy = dy
-    else:
-        dy = -dy
-    return dy
+#     dy = np.sqrt(np.power(foot_point_x - lineX1,2) + np.power(foot_point_y - lineY1,2))
+#     theta_foot_aim = math.atan2(foot_point_y - lineY1,foot_point_x - lineX1)
+#     if abs(theta_foot_aim - theta) < 1e-6:   
+#         dy = dy
+#     else:
+#         dy = -dy
+#     return dy
 
-if __name__ == '__main__':
-    print(getDx(-1,-1,1,-1,-math.pi/4))
+# if __name__ == '__main__':
+#     print(getDx(-1,-1,1,-1,-math.pi/4))

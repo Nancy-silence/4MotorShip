@@ -35,7 +35,8 @@ class ASVEnv(gym.Env):
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(15,))
-        self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
+        self.action_space = spaces.Box(low=-3, high=3, shape=(3,))
+        self.motor_bound = 6
     
     def reset(self):
         """重设环境状态
@@ -97,7 +98,7 @@ class ASVEnv(gym.Env):
             return True
         return False
         
-    def get_reward(self, action):
+    def get_reward(self, motor):
 
         aim_pos, aim_v = self.aim.observation()
         asv_pos, asv_v = self.asv.observation()
@@ -119,18 +120,18 @@ class ASVEnv(gym.Env):
         else:
             r_l = -3
 
-        # del_theta = abs(del_theta)
-        # if del_theta > math.pi/2:
-        #     # r_theta = -np.exp(3*(del_theta-math.pi))
-        #     r_theta = 2 * math.cos(del_theta)
-        # else:
-        #     # r_theta = np.exp(-3 * del_theta)
-        #     r_theta = math.cos(del_theta)
-
+        del_theta = abs(del_theta)
         if del_theta > math.pi/2:
-            r_theta = -6
+            # r_theta = -np.exp(3*(del_theta-math.pi))
+            r_theta = math.cos(del_theta) - 1
         else:
+            # r_theta = np.exp(-3 * del_theta)
             r_theta = math.cos(del_theta)
+
+        # if del_theta > math.pi/2:
+        #     r_theta = -6
+        # else:
+        #     r_theta = math.cos(del_theta)
 
         r1 = r_l + 0.5 * r_theta
         # print(f'del_theta:{del_theta}, r_theta:{r_theta}, r_l:{r_l}, l:{l}')
@@ -138,7 +139,7 @@ class ASVEnv(gym.Env):
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
 
-        sum_a = np.sum(np.power(action,2))
+        sum_a = np.sum(np.power(motor,2))
         r3 = np.exp(-sum_a/100) - 1
 
         motor_his = np.array(self.asv.asv_his_motor)
@@ -164,7 +165,11 @@ class ASVEnv(gym.Env):
         asv_pos, asv_v= self.asv.observation()
         self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
-        self.asv.motor = action
+        forward = action[0]
+        rotate12 = action[1] / 2.0
+        rotate34 = action[1] / 2.0
+        cur_motor = self.asv.motor.data + np.array([forward-rotate12, forward+rotate12, -rotate34, rotate34])
+        self.asv.motor = np.clip(cur_motor, -self.motor_bound, self.motor_bound)
         # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
 
