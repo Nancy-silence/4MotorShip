@@ -58,8 +58,9 @@ def rl_loop(model_path=False):
             for step in range(MAX_STEP):
 
                 action = agent.get_action_noise(cur_state)
+                motor_noise = np.clip(env.asv.motor.data + action, -env.asv.motor_bound, env.asv.motor_bound) 
 
-                next_state, reward, done, info = env.step(action)
+                next_state, reward, done, info = env.step(motor_noise)
 
                 agent.add_step(cur_state, action, reward, done, next_state)
                 agent.learn_batch()

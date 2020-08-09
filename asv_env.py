@@ -14,11 +14,12 @@ import time
 class ASVEnv(gym.Env):
     """
     ASV 的环境
-    ASV的状态(state)由12个部分组成，分别是：
+    ASV的状态(state)由16个部分组成，分别是：
         asv的当前坐标x,当前坐标y,当前航角theta,前进方向速度 u,切向速度 v,转动速度 r
         asv和目标点间相对x,y,u,v,r
         目标点航角theta
-    ASV的动作(action)是控制四个电机速度的列表[]
+        asv motor
+    ASV的动作(action)是控制四个电机变化量的列表[]
     ASV的状态变化通过调用c语言接口实现
     """
     def __init__(self, target_trajectory='linear', interval=0.1, ud=0.3, measure_bias=False):
@@ -156,9 +157,9 @@ class ASVEnv(gym.Env):
         return r
 
     def get_reward_punish(self):
-        return -25
+        return -35
         
-    def step(self, action):
+    def step(self, motor):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
         aim_pos, aim_v= self.aim.observation()
          # 计算asv本步移动前和aim之间的距离
@@ -228,7 +229,7 @@ class ASVEnv(gym.Env):
         plt.plot(range(0, len(draw_ed)), draw_ed)
         plt.title('ed')
 
-        # 绘制action图
+        # 绘制motor图
         plt.subplot(3,2,3)
         plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
         plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
@@ -236,7 +237,7 @@ class ASVEnv(gym.Env):
         plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
         my_y_ticks = np.arange(-6, 7, 1)
         plt.yticks(my_y_ticks)
-        plt.title('action')
+        plt.title('motor')
         plt.legend()
 
         # 绘制theta对比图

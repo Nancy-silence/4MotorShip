@@ -28,17 +28,17 @@ def rl_loop(model_path=False, render=True):
         cur_state = env.reset()
         cum_reward = 0
         for step in range(MAX_STEP):
-            action = agent.get_action(cur_state)[0]
-            next_state, reward, done, info = env.step(action)
+
+            action = agent.get_action(cur_state)
+            # print(action)
+            motor = np.clip(env.asv.motor.data + action, -env.asv.motor_bound, env.asv.motor_bound) 
+
+            next_state, reward, done, info = env.step(motor)
 
             info = {
                 "cur_state": list(cur_state), "action": list(action),
                 "next_state": list(next_state), "reward": reward, "done": done
             }
-            # info = {
-            #     "ship": list(np.append(env.asv.position.data, env.asv.velocity.data)), "action": list(action),
-            #     "aim": list(env.aim.position.data), "reward": reward, "done": done
-            # }
             # print(info, flush=True)
 
             cur_state = next_state
