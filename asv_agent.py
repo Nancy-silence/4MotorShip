@@ -26,6 +26,8 @@ class DDPG(object):
             # 参数复制
             self.tau, self.gamma = tau, gamma
             self.batch_size = BATCH_SIZE
+            # 记录agent跑的step数
+            self.run_step = 0
             # 初始化训练指示符
             self.start_train = False
             self.mem_size = 0
@@ -74,14 +76,16 @@ class DDPG(object):
     def get_action(self, s):
         s = torch.unsqueeze(torch.FloatTensor(s), 0)
         action = self.actor_eval.forward(s).detach().cpu().numpy()
-        return action[0]
+        return action
 
     def get_action_noise(self, state):
         action = self.get_action(state)
         action_noise = self.noise()
+        # print(action, action_noise)
         action += action_noise
         action = np.clip(action, -self.bound, self.bound)
-        return action
+        self.run_step += 1
+        return action[0]
 
     def learn(self):
         """训练网络"""
@@ -136,7 +140,8 @@ class DDPG(object):
             'critic_eval_net': self.critic_eval.state_dict(),
             'critic_target_net': self.critic_target.state_dict(),
             'episode': episode,
-            'learn_step': self.learn_step
+            'learn_step': self.learn_step,
+            'run_step' : self.run_step
         }
         torch.save(state, f'./model/{target_trajectory}.pth')
 
@@ -149,6 +154,7 @@ class DDPG(object):
         self.critic_eval.load_state_dict(saved_state['critic_eval_net'])
         self.critic_target.load_state_dict(saved_state['critic_target_net'])
         self.learn_step = saved_state['learn_step']
+        self.run_step = saved_state['run_step']
         return saved_state['episode'] + 1
 
     def cuda(self):

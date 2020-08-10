@@ -14,12 +14,11 @@ import time
 class ASVEnv(gym.Env):
     """
     ASV 的环境
-    ASV的状态(state)由16个部分组成，分别是：
+    ASV的状态(state)由12个部分组成，分别是：
         asv的当前坐标x,当前坐标y,当前航角theta,前进方向速度 u,切向速度 v,转动速度 r
         asv和目标点间相对x,y,u,v,r
         目标点航角theta
-        asv motor
-    ASV的动作(action)是控制四个电机变化量的列表[]
+    ASV的动作(action)是控制四个电机速度的列表[]
     ASV的状态变化通过调用c语言接口实现
     """
     def __init__(self, target_trajectory='linear', interval=0.1, ud=0.3, measure_bias=False):
@@ -35,8 +34,8 @@ class ASVEnv(gym.Env):
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(15,))
-        self.action_space = spaces.Box(low=-3, high=3, shape=(2,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
+        self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
         self.motor_bound = 6
     
     def reset(self):
@@ -89,7 +88,7 @@ class ASVEnv(gym.Env):
 
         # del_theta_abs = math.atan2(aim_pos[1] - asv_pos[1], aim_pos[0] - asv_pos[0])
 
-        a = np.array([dx, dy, del_theta, asv_pos[2], aim_pos[2]])
+        a = np.array([dx, dy, del_theta])
         state = np.concatenate((a, asv_v, aim_v, self.asv.motor.data), axis=0)
         return state
 
@@ -148,26 +147,26 @@ class ASVEnv(gym.Env):
         r4 = 0
         for i in range(4):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.1 * (np.exp(-std) - 1)
+            r4 += 0.2 * (np.exp(-std) - 1)
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
-        r =r1 + r2 + r3 + r4
+        r =r1 + r2 + 2 * r3 + r4
 
         return r
 
     def get_reward_punish(self):
-        return -35
+        return -25
         
-    def step(self, motor):
+    def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
         aim_pos, aim_v= self.aim.observation()
          # 计算asv本步移动前和aim之间的距离
         asv_pos, asv_v= self.asv.observation()
         self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
-        forward = action[0]
-        rotate = action[1] / 2.0
+        forward = action[0] / 2.0
+        rotate = action[1] / 4.0
         cur_motor = self.asv.motor.data + np.array([forward-rotate, forward+rotate, -rotate, rotate])
         self.asv.motor = np.clip(cur_motor, -self.motor_bound, self.motor_bound)
         # 让asv移动后，当前asv坐标更新为移动后的坐标
@@ -229,7 +228,7 @@ class ASVEnv(gym.Env):
         plt.plot(range(0, len(draw_ed)), draw_ed)
         plt.title('ed')
 
-        # 绘制motor图
+        # 绘制action图
         plt.subplot(3,2,3)
         plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
         plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
@@ -237,7 +236,7 @@ class ASVEnv(gym.Env):
         plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
         my_y_ticks = np.arange(-6, 7, 1)
         plt.yticks(my_y_ticks)
-        plt.title('motor')
+        plt.title('action')
         plt.legend()
 
         # 绘制theta对比图
