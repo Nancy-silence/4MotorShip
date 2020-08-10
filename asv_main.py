@@ -38,7 +38,7 @@ def rl_loop(model_path=False):
         a_dim = env.action_space.shape[0]
         a_bound = env.action_space.high[0]
 
-        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.99, MAX_MEM=300000, MIN_MEM=1000, BATCH_SIZE=128)
+        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=300000, MIN_MEM=1000, BATCH_SIZE=128)
         if model_path != False:
             START_EPISODE = agent.load(model_path)
         else:
@@ -52,15 +52,14 @@ def rl_loop(model_path=False):
         for e in range(START_EPISODE, MAX_EPISODE):
             cur_state = env.reset()
             cum_reward = 0
-            noise_decay_rate = max(0.5 * ((MAX_DECAYEP - e) / MAX_DECAYEP), 0.01)
+            noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.05)
             agent.build_noise(0, noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
 
             for step in range(MAX_STEP):
 
                 action = agent.get_action_noise(cur_state)
-                motor_noise = np.clip(env.asv.motor.data + action, -env.asv.motor_bound, env.asv.motor_bound) 
 
-                next_state, reward, done, info = env.step(motor_noise)
+                next_state, reward, done, info = env.step(action)
 
                 agent.add_step(cur_state, action, reward, done, next_state)
                 agent.learn_batch()
