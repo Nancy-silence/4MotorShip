@@ -54,4 +54,4 @@ def rl_loop(model_path=False, render=True):
         env.data_save_exl()
 
 if __name__ == '__main__':
-    rl_loop('./model/func_sin best_model.pth')
+    rl_loop('./model/func_sin.pth')
