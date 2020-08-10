@@ -122,11 +122,11 @@ class ASVEnv(gym.Env):
 
         del_theta = abs(del_theta)
         if del_theta > math.pi/2:
-            # r_theta = -np.exp(3*(del_theta-math.pi))
-            r_theta = math.cos(del_theta) - 1
+            r_theta = -np.exp(3*(del_theta-math.pi)) -1
+            # r_theta = math.cos(del_theta) - 1
         else:
-            # r_theta = np.exp(-3 * del_theta)
-            r_theta = math.cos(del_theta)
+            r_theta = np.exp(-3 * del_theta)
+            # r_theta = math.cos(del_theta)
 
         # if del_theta > math.pi/2:
         #     r_theta = -6
@@ -156,7 +156,7 @@ class ASVEnv(gym.Env):
         return r
 
     def get_reward_punish(self):
-        return -25
+        return -30
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
