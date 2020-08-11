@@ -34,7 +34,7 @@ class ASVEnv(gym.Env):
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(15,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
         self.motor_bound = 6
     
@@ -88,7 +88,7 @@ class ASVEnv(gym.Env):
 
         # del_theta_abs = math.atan2(aim_pos[1] - asv_pos[1], aim_pos[0] - asv_pos[0])
 
-        a = np.array([dx, dy, del_theta])
+        a = np.array([dx, dy, del_theta, asv_pos[2], aim_pos[2]])
         state = np.concatenate((a, asv_v, aim_v, self.asv.motor.data), axis=0)
         return state
 
