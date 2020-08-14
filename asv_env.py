@@ -27,6 +27,8 @@ class ASVEnv(gym.Env):
         self.asv = ASV(self.interval, measure_bias)
         self.aim = MovePoint(self.interval, self.target_trajectory, ud)
         self.radius = 0.5
+        self.asv_a = 0.45
+        self.asv_b = 0.9
 
         self.draw_ed = []
         self.draw_aim_theta = []
@@ -166,8 +168,11 @@ class ASVEnv(gym.Env):
         self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
         forward = action[0] / 2.0
-        rotate = action[1] / 4.0
-        cur_motor = self.asv.motor.data + np.array([forward-rotate, forward+rotate, -rotate, rotate])
+        factor12 = self.asv_a / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
+        factor34 = self.asv_b / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
+        rotate = action[1]
+        cur_motor = self.asv.motor.data + np.array([forward-factor12*rotate, forward+factor12*rotate, \
+            -factor34*rotate, factor34*rotate])
         self.asv.motor = np.clip(cur_motor, -self.motor_bound, self.motor_bound)
         # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
