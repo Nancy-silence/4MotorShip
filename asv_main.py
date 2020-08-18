@@ -18,7 +18,7 @@ class GracefulExitException(Exception):
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 MAX_EPISODE = 1000000
-# MAX_DECAYEP = 3000
+MAX_DECAYEP = 3000
 MAX_STEP = 300
 
 LR_A = 0.0005
@@ -38,7 +38,7 @@ def rl_loop(model_path=False):
         a_dim = env.action_space.shape[0]
         a_bound = env.action_space.high[0]
 
-        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=300000, MIN_MEM=1000, BATCH_SIZE=128)
+        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=200000, MIN_MEM=1000, BATCH_SIZE=128)
         if model_path != False:
             START_EPISODE = agent.load(model_path)
         else:
@@ -47,16 +47,13 @@ def rl_loop(model_path=False):
         summary_writer = agent.get_summary_writer()
 
         reward_his = []
-        best_ave_cumreward = -1000
-        ten_episode_ave_reward = -6.3
+        best_ave_reward = -1000
 
         for e in range(START_EPISODE, MAX_EPISODE):
             cur_state = env.reset()
             cum_reward = 0
-            # noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.05)
-            # noise_decay_rate = - np.exp(ten_episode_ave_reward - 0.5) + 1
-            noise_decay_rate = -0.147 * ten_episode_ave_reward + 0.0735
-            agent.build_noise(0, noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
+            noise_decay_rate = max((MAX_DECAYEP - e) / MAX_DECAYEP, 0.1)
+            agent.build_noise(0, 0.3 * noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
 
             for step in range(MAX_STEP):
 
@@ -67,6 +64,10 @@ def rl_loop(model_path=False):
                 agent.add_step(cur_state, action, reward, done, next_state)
                 agent.learn_batch()
 
+                # info = {
+                #     "cur_state": list(cur_state), "action": list(action),
+                #     "next_state": list(next_state), "reward": reward, "done": done
+                # }
                 info = {
                     "ship": list(np.append(env.asv.position.data, env.asv.velocity.data)), "action": list(action),
                     "aim": list(env.aim.position.data), "reward": reward, "done": done
@@ -88,19 +89,8 @@ def rl_loop(model_path=False):
                     #     RENDER = True
                     break
 
-            # 计算近期平均reward,为adaptive noise decay rate准备
-            ten_episode_ave_reward = 0
-            counter = 0
-            for i in reward_his[-min(50, len(reward_his)):]:
-                counter += 1
-                ten_episode_ave_reward += i[1] / MAX_STEP
-            ten_episode_ave_reward /= counter
-
-            #模型保存
-
-            # 覆盖保存每一局的模型
             agent.save(e, env.target_trajectory)
-            # 保存最优模型
+
             signal = True
             cumreward_sum = 0
             for i in reward_his[-min(10, len(reward_his)):]:
@@ -109,8 +99,8 @@ def rl_loop(model_path=False):
                     break
                 else:
                     cumreward_sum += i[1]
-            if signal and (cumreward_sum/ 10.0) > best_ave_cumreward:
-                best_ave_cumreward = cumreward_sum / 10.0
+            if signal and (cumreward_sum / 10.0) > best_ave_reward:
+                best_ave_reward = cumreward_sum / 10.0
                 agent.save(e, env.target_trajectory + ' best_model')
 
     except (KeyboardInterrupt,GracefulExitException):
