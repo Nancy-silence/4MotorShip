@@ -37,7 +37,7 @@ class ASVEnv(gym.Env):
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(15,))
-        self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
+        self.action_space = spaces.Box(low=-2, high=2, shape=(2,))
         self.motor_bound = 6
     
     def reset(self):
@@ -167,7 +167,7 @@ class ASVEnv(gym.Env):
         asv_pos, asv_v= self.asv.observation()
         self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
-        forward = action[0] / 2.0
+        forward = action[0]
         factor12 = self.asv_a / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
         factor34 = self.asv_b / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
         rotate = action[1]
