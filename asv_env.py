@@ -29,6 +29,8 @@ class ASVEnv(gym.Env):
         self.radius = 0.5
         self.asv_a = 0.45
         self.asv_b = 0.9
+        self.factor12 = self.asv_a / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
+        self.factor34 = self.asv_b / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
 
         self.draw_ed = []
         self.draw_aim_theta = []
@@ -36,7 +38,7 @@ class ASVEnv(gym.Env):
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(15,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
         self.action_space = spaces.Box(low=-2, high=2, shape=(2,))
         self.motor_bound = 6
     
@@ -91,7 +93,7 @@ class ASVEnv(gym.Env):
         # del_theta_abs = math.atan2(aim_pos[1] - asv_pos[1], aim_pos[0] - asv_pos[0])
 
         a = np.array([dx, dy, del_theta, asv_pos[2], aim_pos[2]])
-        state = np.concatenate((a, asv_v, aim_v, self.asv.motor.data), axis=0)
+        state = np.concatenate((a, asv_v, aim_v, self.asv.torque), axis=0)
         return state
 
     def get_done(self):
@@ -100,7 +102,7 @@ class ASVEnv(gym.Env):
             return True
         return False
         
-    def get_reward(self, motor):
+    def get_reward(self, torque):
 
         aim_pos, aim_v = self.aim.observation()
         asv_pos, asv_v = self.asv.observation()
@@ -141,19 +143,19 @@ class ASVEnv(gym.Env):
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
 
-        sum_a = np.sum(np.power(motor,2))
-        r3 = np.exp(-sum_a/100) - 1
+        sum_a = np.sum(np.power(torque,2))
+        r3 = np.exp(-sum_a/80) - 1
 
-        motor_his = np.array(self.asv.asv_his_motor)
-        a_nearby = motor_his[-min(40, len(motor_his)):,:]
+        torque_his = np.array(self.asv.asv_his_torque)
+        a_nearby = torque_his[-min(40, len(torque_his)):,:]
         r4 = 0
-        for i in range(4):
+        for i in range(2):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.2 * (np.exp(-std) - 1)
+            r4 += 0.4 * (np.exp(-std) - 1)
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
-        r =r1 + r2 + 2 * r3 + r4
+        r =r1 + r2 + r3 + r4
 
         return r
 
@@ -167,13 +169,13 @@ class ASVEnv(gym.Env):
         asv_pos, asv_v= self.asv.observation()
         self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
-        forward = action[0]
-        factor12 = self.asv_a / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
-        factor34 = self.asv_b / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
-        rotate = action[1]
-        cur_motor = self.asv.motor.data + np.array([forward-factor12*rotate, forward+factor12*rotate, \
-            -factor34*rotate, factor34*rotate])
+        forward_torque = self.asv.torque[0] + action[0] * 2
+        rotate_torque = self.asv.torque[1] + action[1]
+        self.asv.torque = np.array([forward_torque, rotate_torque])
+        cur_motor = np.array([forward_torque/2-self.factor12*rotate_torque, forward_torque/2+ \
+            self.factor12*rotate_torque, -self.factor34*rotate_torque, self.factor34*rotate_torque])
         self.asv.motor = np.clip(cur_motor, -self.motor_bound, self.motor_bound)
+        
         # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
 
