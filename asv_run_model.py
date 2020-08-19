@@ -39,7 +39,7 @@ def rl_loop(model_path=False, render=True):
             #     "ship": list(np.append(env.asv.position.data, env.asv.velocity.data)), "action": list(action),
             #     "aim": list(env.aim.position.data), "reward": reward, "done": done
             # }
-            print(info, flush=True)
+            # print(info, flush=True)
 
             cur_state = next_state
             cum_reward += reward
