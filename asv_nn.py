@@ -7,7 +7,7 @@ import torch.nn.functional as F
 CUDA = torch.cuda.is_available()
 
 class ASVActorNet(nn.Module):
-    def __init__(self, n_states, n_actions, n_neurons=300, a_bound=1):
+    def __init__(self, n_states, n_actions, n_neurons=300, a_bound=[1]):
         super().__init__()
         self.bound = a_bound
 
@@ -23,9 +23,9 @@ class ASVActorNet(nn.Module):
         torch.nn.init.xavier_uniform_(self.out.weight.data, gain=1)
         torch.nn.init.uniform_(self.out.bias.data, 0, 0.5)
         if CUDA:
-            self.bound = torch.FloatTensor([self.bound]).cuda()
+            self.bound = torch.FloatTensor(self.bound).cuda()
         else:
-            self.bound = torch.FloatTensor([self.bound])
+            self.bound = torch.FloatTensor(self.bound)
 
     def forward(self, x):
         """

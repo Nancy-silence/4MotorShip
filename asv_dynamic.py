@@ -134,7 +134,10 @@ class ASV(object):
         self.__position = Dim3Position()
         self.__velocity = Dim3Velocity()
         self.__motor = Dim4Motor()
-        self.torque = np.array([0,0])
+        self.torque = np.array([0.,0.])
+
+        self.asv_a = 0.45
+        self.asv_b = 0.9
 
         self.asv_his_pos = [self.__position.data]
         self.asv_his_v = [self.__velocity.data]
@@ -163,7 +166,7 @@ class ASV(object):
         self.__position.theta = begin_pos[2]  #+ np.random.uniform(-math.pi/2, math.pi/2)
         self.__velocity.u, self.__velocity.v, self.__velocity.r = 0, 0, 0
         self.motor = (0, 0, 0, 0)
-        self.torque = np.array([0,0])
+        self.torque = np.array([0.,0.])
 
         self.asv_his_pos = [list(self.__position.data)]
         self.asv_his_v = [list(self.__velocity.data)]
