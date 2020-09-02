@@ -27,10 +27,9 @@ class ASVEnv(gym.Env):
         self.asv = ASV(self.interval, measure_bias)
         self.aim = MovePoint(self.interval, self.target_trajectory, ud)
         self.radius = 0.5
-        self.asv_a = 0.45
-        self.asv_b = 0.9
-        self.factor12 = self.asv_a / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
-        self.factor34 = self.asv_b / (np.power(self.asv_a,2) + np.power(self.asv_b,2))
+        
+        self.factor12 = self.asv.asv_a / (np.power(self.asv.asv_a,2) + np.power(self.asv.asv_b,2))
+        self.factor34 = self.asv.asv_b / (np.power(self.asv.asv_a,2) + np.power(self.asv.asv_b,2))
 
         self.draw_ed = []
         self.draw_aim_theta = []
@@ -39,8 +38,10 @@ class ASVEnv(gym.Env):
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
-        self.action_space = spaces.Box(low=-2, high=2, shape=(2,))
-        self.motor_bound = 6
+        self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
+        self.action_bound = np.array([6, 3])
+        self.torque_bound = np.array([12, 6])
+        self.force_bound = 6
     
     def reset(self):
         """重设环境状态
@@ -102,7 +103,7 @@ class ASVEnv(gym.Env):
             return True
         return False
         
-    def get_reward(self, torque):
+    def get_reward(self):
 
         aim_pos, aim_v = self.aim.observation()
         asv_pos, asv_v = self.asv.observation()
@@ -127,10 +128,8 @@ class ASVEnv(gym.Env):
         del_theta = abs(del_theta)
         if del_theta > math.pi/2:
             r_theta = -np.exp(3*(del_theta-math.pi)) -1
-            # r_theta = math.cos(del_theta) - 1
         else:
             r_theta = np.exp(-3 * del_theta)
-            # r_theta = math.cos(del_theta)
 
         # if del_theta > math.pi/2:
         #     r_theta = -6
@@ -143,8 +142,8 @@ class ASVEnv(gym.Env):
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
 
-        sum_a = np.sum(np.power(torque,2))
-        r3 = np.exp(-sum_a/80) - 1
+        sum_a = np.sum(np.power(self.asv.motor.data,2))
+        r3 = np.exp(-sum_a/100) - 1
 
         torque_his = np.array(self.asv.asv_his_torque)
         a_nearby = torque_his[-min(40, len(torque_his)):,:]
@@ -155,7 +154,7 @@ class ASVEnv(gym.Env):
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
-        r =r1 + r2 + r3 + r4
+        r =r1 + r2 + 2 * r3 + r4
 
         return r
 
@@ -169,12 +168,15 @@ class ASVEnv(gym.Env):
         asv_pos, asv_v= self.asv.observation()
         self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
-        forward_torque = self.asv.torque[0] + action[0] * 2
+        forward_torque = self.asv.torque[0] + action[0]
         rotate_torque = self.asv.torque[1] + action[1]
-        self.asv.torque = np.array([forward_torque, rotate_torque])
-        cur_motor = np.array([forward_torque/2-self.factor12*rotate_torque, forward_torque/2+ \
-            self.factor12*rotate_torque, -self.factor34*rotate_torque, self.factor34*rotate_torque])
-        self.asv.motor = np.clip(cur_motor, -self.motor_bound, self.motor_bound)
+
+        self.asv.torque[0] = min(self.torque_bound[0], max(-self.torque_bound[0], forward_torque))
+        self.asv.torque[1] = min(self.torque_bound[1], max(-self.torque_bound[1], rotate_torque))
+        cur_motor = np.array([self.asv.torque[0]/2+self.factor12*self.asv.torque[1], self.asv.torque[0]/2- \
+            self.factor12*self.asv.torque[1], self.factor34*self.asv.torque[1], -self.factor34*self.asv.torque[1]])
+        # self.asv.motor = cur_motor
+        self.asv.motor = np.clip(cur_motor, -self.force_bound, self.force_bound)
         
         # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
@@ -188,7 +190,7 @@ class ASVEnv(gym.Env):
         if done:
             reward = self.get_reward_punish()
         else:
-            reward = self.get_reward(action)
+            reward = self.get_reward()
         
         # draw数据准备
         self.draw_aim_theta.append(aim_pos[2])
@@ -224,6 +226,10 @@ class ASVEnv(gym.Env):
         # 绘制aim
         plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='aim')
         # 绘制asv
+        # for i in range(len(asv_his_pos)):
+        #     asv_his_pos[i][0] += np.random.normal(0, 0.02)
+        #     asv_his_pos[i][1] += np.random.normal(0, 0.02)
+
         plt.plot(*zip(*asv_his_pos[:,[0,1]]), 'b', label='asv')
         # my_ticks = np.arange(-4, 8, 0.5)
         # plt.yticks(my_ticks)
