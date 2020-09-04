@@ -18,7 +18,7 @@ class GracefulExitException(Exception):
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 MAX_EPISODE = 1000000
-MAX_DECAYEP = 3000
+MAX_DECAYEP = 4000
 MAX_STEP = 300
 
 LR_A = 0.0005

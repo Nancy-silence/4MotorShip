@@ -39,7 +39,7 @@ class ASVEnv(gym.Env):
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
-        self.action_bound = np.array([6, 3])
+        self.action_bound = np.array([6, 2])
         self.torque_bound = np.array([12, 6])
         self.force_bound = 6
     
@@ -150,7 +150,7 @@ class ASVEnv(gym.Env):
         r4 = 0
         for i in range(2):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.4 * (np.exp(-std) - 1)
+            r4 += 0.5 * (np.exp(-std) - 1)
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
