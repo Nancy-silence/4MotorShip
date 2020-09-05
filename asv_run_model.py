@@ -13,7 +13,7 @@ MAX_STEP = 300
 def rl_loop(model_path=False, render=True):
     RENDER = render
 
-    env = ASVEnv(target_trajectory='func_sin')  # 加入测量误差用 measure_bias=True
+    env = ASVEnv(target_trajectory='linear')  # 加入测量误差用 measure_bias=True
     s_dim = env.observation_space.shape[0]
     a_dim = env.action_space.shape[0]
     a_bound = env.action_bound

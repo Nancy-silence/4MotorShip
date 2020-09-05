@@ -39,7 +39,7 @@ class ASVEnv(gym.Env):
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
-        self.action_bound = np.array([6, 2])
+        self.action_bound = np.array([6, 3])
         self.torque_bound = np.array([12, 6])
         self.force_bound = 6
     
@@ -143,10 +143,10 @@ class ASVEnv(gym.Env):
         r2 = np.exp(-3 * error_v) - 1
 
         sum_a = np.sum(np.power(self.asv.motor.data,2))
-        r3 = np.exp(-sum_a/100) - 1
+        r3 =  2 * np.exp(-sum_a/100) - 1
 
         torque_his = np.array(self.asv.asv_his_torque)
-        a_nearby = torque_his[-min(40, len(torque_his)):,:]
+        a_nearby = torque_his[-min(20, len(torque_his)):,:]
         r4 = 0
         for i in range(2):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
@@ -154,7 +154,7 @@ class ASVEnv(gym.Env):
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
-        r =r1 + r2 + 2 * r3 + r4
+        r =r1 + r2 + r3 + r4
 
         return r
 
