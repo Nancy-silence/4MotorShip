@@ -143,7 +143,7 @@ class ASVEnv(gym.Env):
         r2 = np.exp(-3 * error_v) - 1
 
         sum_a = np.sum(np.power(self.asv.motor.data,2))
-        r3 =  2 * np.exp(-sum_a/100) - 1
+        r3 =  np.exp(-sum_a/15) - 1
 
         torque_his = np.array(self.asv.asv_his_torque)
         a_nearby = torque_his[-min(20, len(torque_his)):,:]
