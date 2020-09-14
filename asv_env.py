@@ -121,11 +121,11 @@ class ASVEnv(gym.Env):
         if del_l > 0:
             r_l = np.power(2, -10 * l) - 1
         else:
-            r_l = -3
+            r_l = -1.5
 
         del_theta = abs(del_theta)
         if del_theta > math.pi/2:
-            r_theta = -np.exp(3*(del_theta-math.pi)) -1
+            r_theta = -np.exp(3*(del_theta-math.pi))
         else:
             r_theta = np.exp(-3 * del_theta)
 
@@ -135,18 +135,19 @@ class ASVEnv(gym.Env):
         #     r_theta = math.cos(del_theta)
 
         r1 = r_l + 0.5 * r_theta
-        # print(f'del_theta:{del_theta}, r_theta:{r_theta}, r_l:{r_l}, l:{l}')
+        print(f'del_theta:{del_theta}, r_theta:{r_theta}, r_l:{r_l}, l:{l}')
 
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
 
-        # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
-
         r =r1 + r2
+
+        print(f'r:{r}, del_l:{del_l}, l:{l}, r_l:{r_l}, del_theta:{del_theta}, r_theta:{r_theta}, r1:{r1}, r2:{r2}')
 
         return r
 
     def get_reward_punish(self):
+        print('r:-20')
         return -20
         
     def step(self, action):
