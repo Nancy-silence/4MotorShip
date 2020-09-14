@@ -125,20 +125,24 @@ class Dim4Motor(object):
 
 class ASV(object):
 
-    def __init__(self, time_interval = 0.1, measure_bias = False, motor_bound = 6):
+    def __init__(self, time_interval = 0.1, measure_bias = False):
         """
         @param: time_interval控制系统决策时间
         """
         self.time_interval = time_interval
         self.measure_bias = measure_bias
-        self.motor_bound = motor_bound
         self.__position = Dim3Position()
         self.__velocity = Dim3Velocity()
         self.__motor = Dim4Motor()
+        self.torque = np.array([0.,0.])
+
+        self.asv_a = 0.45
+        self.asv_b = 0.9
 
         self.asv_his_pos = [self.__position.data]
         self.asv_his_v = [self.__velocity.data]
         self.asv_his_motor = [self.__motor.data]
+        self.asv_his_torque = [self.torque]
     
     @property
     def position(self):
@@ -157,15 +161,17 @@ class ASV(object):
         self.__motor.a1, self.__motor.a2, self.__motor.a3, self.__motor.a4 = motor 
 
     def reset_state(self, begin_pos):
-        self.__position.x = begin_pos[0] # + np.random.rand() - 0.5
-        self.__position.y = begin_pos[1] # + np.random.rand() - 0.5
-        self.__position.theta = begin_pos[2] # + np.random.uniform(-math.pi/2, math.pi/2)
+        self.__position.x = begin_pos[0]  #+ np.random.rand() - 0.5
+        self.__position.y = begin_pos[1]  #+ np.random.rand() - 0.5
+        self.__position.theta = begin_pos[2]  #+ np.random.uniform(-math.pi/2, math.pi/2)
         self.__velocity.u, self.__velocity.v, self.__velocity.r = 0, 0, 0
         self.motor = (0, 0, 0, 0)
+        self.torque = np.array([0.,0.])
 
         self.asv_his_pos = [list(self.__position.data)]
         self.asv_his_v = [list(self.__velocity.data)]
         self.asv_his_motor = []
+        self.asv_his_torque = []
 
         return self.observation()
 
@@ -176,13 +182,14 @@ class ASV(object):
         self.__position.x, self.__position.y, self.__position.theta, \
             self.__velocity.u, self.__velocity.v, self.__velocity.r = next_obs
 
-        self.asv_his_pos.append(list(self.__position.data))
-        self.asv_his_v.append(list(self.__velocity.data))
-        self.asv_his_motor.append(list(self.__motor.data))
-
         if self.measure_bias:
             self.__position.x = self.__position.x + np.random.normal(0, 0.02)
             self.__position.y = self.__position.y + np.random.normal(0, 0.02)
+
+        self.asv_his_pos.append(list(self.__position.data))
+        self.asv_his_v.append(list(self.__velocity.data))
+        self.asv_his_motor.append(list(self.__motor.data))
+        self.asv_his_torque.append(list(self.torque))
 
         return self.observation()
 
