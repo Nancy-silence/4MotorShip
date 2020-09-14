@@ -39,10 +39,7 @@ class ASVEnv(gym.Env):
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
-        self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
-        self.action_bound = np.array([6, 3])
-        self.torque_bound = np.array([12, 6])
-        self.force_bound = 6
+        self.action_space = spaces.Box(low=-6, high=6, shape=(4,))
     
     def reset(self):
         """重设环境状态
@@ -143,43 +140,14 @@ class ASVEnv(gym.Env):
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
         r2 = np.exp(-3 * error_v) - 1
 
-        sum_a = np.sum(np.power(self.asv.motor.data,2))
-        r3 =  np.exp(-sum_a/50) - 1
-
-        torque_his = np.array(self.asv.asv_his_torque)
-        a_nearby = torque_his[-min(20, len(torque_his)):,:]
-        r4 = 0
-        for i in range(2):
-            std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.25 * (np.exp(-std) - 1)
-
-        torque_nearby = torque_his[-min(5, len(torque_his)):,:]
-        r5 = 0
-        for i in range(len(torque_nearby[0])):
-            torque_nearby_sep = torque_nearby[:,i]
-            diff_abs = abs(torque_nearby_sep[-1] - torque_nearby_sep[0])
-            diff_sum = 0
-            if len(torque_nearby_sep) == 1:
-                er_sep = 1
-            else:
-                for j in range(len(torque_nearby_sep)-1):
-                    diff_sum += abs(torque_nearby_sep[j+1] - torque_nearby_sep[j])
-                if diff_sum == 0:
-                    er_sep = 1
-                else:
-                    er_sep = diff_abs / diff_sum
-            temp = 0.25 * (np.exp(er_sep - 1) - 1)
-            # print(f'torque:{torque_nearby_sep}, diff_abs:{diff_abs}, diff_sum:{diff_sum}, er_sep:{er_sep}, temp:{temp}')
-            r5 += temp
-
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
-        r =r1 + r2 + r3 + r4 + r5
+        r =r1 + r2
 
         return r
 
     def get_reward_punish(self):
-        return -30
+        return -20
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点
@@ -188,16 +156,8 @@ class ASVEnv(gym.Env):
         asv_pos, asv_v= self.asv.observation()
         self.l_before_a = math.sqrt(np.sum(np.power((asv_pos[0:2] - aim_pos[0:2]), 2)))
         # 在获得action之后，让asv根据action移动
-        forward_torque = self.asv.torque[0] + action[0]
-        rotate_torque = self.asv.torque[1] + action[1]
-
-        self.asv.torque[0] = min(self.torque_bound[0], max(-self.torque_bound[0], forward_torque))
-        self.asv.torque[1] = min(self.torque_bound[1], max(-self.torque_bound[1], rotate_torque))
-        cur_motor = np.array([self.asv.torque[0]/2+self.factor12*self.asv.torque[1], self.asv.torque[0]/2- \
-            self.factor12*self.asv.torque[1], self.factor34*self.asv.torque[1], -self.factor34*self.asv.torque[1]])
-        # self.asv.motor = cur_motor
-        self.asv.motor = np.clip(cur_motor, -self.force_bound, self.force_bound)
-        
+        self.asv.motor = action
+    
         # 让asv移动后，当前asv坐标更新为移动后的坐标
         cur_asv_pos, cur_asv_v = self.asv.move()
 
