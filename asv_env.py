@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import numpy as np
+from numpy.lib.function_base import diff
 import pandas as pd
 import math
 from asv_dynamic import ASV
@@ -143,18 +144,37 @@ class ASVEnv(gym.Env):
         r2 = np.exp(-3 * error_v) - 1
 
         sum_a = np.sum(np.power(self.asv.motor.data,2))
-        r3 =  np.exp(-sum_a/15) - 1
+        r3 =  np.exp(-sum_a/50) - 1
 
         torque_his = np.array(self.asv.asv_his_torque)
         a_nearby = torque_his[-min(20, len(torque_his)):,:]
         r4 = 0
         for i in range(2):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.5 * (np.exp(-std) - 1)
+            r4 += 0.25 * (np.exp(-std) - 1)
+
+        torque_nearby = torque_his[-min(5, len(torque_his)):,:]
+        r5 = 0
+        for i in range(len(torque_nearby[0])):
+            torque_nearby_sep = torque_nearby[:,i]
+            diff_abs = abs(torque_nearby_sep[-1] - torque_nearby_sep[0])
+            diff_sum = 0
+            if len(torque_nearby_sep) == 1:
+                er_sep = 1
+            else:
+                for j in range(len(torque_nearby_sep)-1):
+                    diff_sum += abs(torque_nearby_sep[j+1] - torque_nearby_sep[j])
+                if diff_sum == 0:
+                    er_sep = 1
+                else:
+                    er_sep = diff_abs / diff_sum
+            temp = 0.25 * (np.exp(er_sep - 1) - 1)
+            # print(f'torque:{torque_nearby_sep}, diff_abs:{diff_abs}, diff_sum:{diff_sum}, er_sep:{er_sep}, temp:{temp}')
+            r5 += temp
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
-        r =r1 + r2 + r3 + r4
+        r =r1 + r2 + r3 + r4 + r5
 
         return r
 
@@ -217,7 +237,8 @@ class ASVEnv(gym.Env):
         draw_ed = np.array(self.draw_ed)
         asv_his_pos = np.array(self.asv.asv_his_pos)
         asv_his_v = np.array(self.asv.asv_his_v)
-        action_his = np.array(self.asv.asv_his_motor)
+        motor_his = np.array(self.asv.asv_his_motor)
+        torque_his = np.array(self.asv.asv_his_torque)
 
         plt.clf()
 
@@ -241,26 +262,33 @@ class ASVEnv(gym.Env):
         plt.plot(range(0, len(draw_ed)), draw_ed)
         plt.title('ed')
 
-        # 绘制action图
+        # 绘制motor图
         plt.subplot(3,2,3)
-        plt.plot(range(0, len(action_his)), action_his[:,0], label='a1')
-        plt.plot(range(0, len(action_his)), action_his[:,1], label='a2')
-        plt.plot(range(0, len(action_his)), action_his[:,2], label='a3')
-        plt.plot(range(0, len(action_his)), action_his[:,3], label='a4')
+        plt.plot(range(0, len(motor_his)), motor_his[:,0], label='f1')
+        plt.plot(range(0, len(motor_his)), motor_his[:,1], label='f2')
+        plt.plot(range(0, len(motor_his)), motor_his[:,2], label='f3')
+        plt.plot(range(0, len(motor_his)), motor_his[:,3], label='f4')
         my_y_ticks = np.arange(-6, 7, 1)
         plt.yticks(my_y_ticks)
-        plt.title('action')
+        plt.title('motor')
+        plt.legend()
+
+        # 绘制torque图
+        plt.subplot(3,2,4)
+        plt.plot(range(0, len(torque_his)), torque_his[:,0], label='forward')
+        plt.plot(range(0, len(torque_his)), torque_his[:,1], label='rotate')
+        plt.title('torque')
         plt.legend()
 
         # 绘制theta对比图
-        plt.subplot(3,2,4)
+        plt.subplot(3,2,5)
         plt.plot(range(0, len(draw_aim_theta)), draw_aim_theta, label='aim')
         plt.plot(range(0, len(asv_his_pos)), asv_his_pos[:,2], label='asv')
         plt.title('theta')
         plt.legend()
 
         # 绘制asv的速度图
-        plt.subplot(3,2,5)
+        plt.subplot(3,2,6)
         plt.plot(range(0, len(asv_his_v)), asv_his_v[:,0], label='u_asv')
         plt.plot(range(0, len(draw_aim_v)), draw_aim_v[:,0], label='u_aim')
         plt.plot(range(0, len(asv_his_v)), asv_his_v[:,1], label='v_asv')

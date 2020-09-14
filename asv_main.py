@@ -21,7 +21,7 @@ MAX_EPISODE = 1000000
 MAX_DECAYEP = 4000
 MAX_STEP = 300
 
-LR_A = 0.0005
+LR_A = 0.0001
 LR_C = 0.001
 
 def rl_loop(model_path=False):
@@ -38,7 +38,7 @@ def rl_loop(model_path=False):
         a_dim = env.action_space.shape[0]
         a_bound = env.action_bound
 
-        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=200000, MIN_MEM=1000, BATCH_SIZE=128)
+        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=200000, MIN_MEM=1000, BATCH_SIZE=128, noise_type='Normal')
         if model_path != False:
             START_EPISODE = agent.load(model_path)
         else:
@@ -52,7 +52,7 @@ def rl_loop(model_path=False):
         for e in range(START_EPISODE, MAX_EPISODE):
             cur_state = env.reset()
             cum_reward = 0
-            noise_decay_rate = 0.2 * ((MAX_DECAYEP - e) / MAX_DECAYEP)
+            noise_decay_rate = 0.3 * ((MAX_DECAYEP - e) / MAX_DECAYEP)
             agent.build_noise(0, [max(noise_decay_rate, 0.008), max(noise_decay_rate, 0.006)])  # 根据给定的均值和decay的方差，初始化噪声发生器
 
             for step in range(MAX_STEP):
