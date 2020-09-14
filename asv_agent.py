@@ -84,8 +84,7 @@ class DDPG(object):
         action_noise = self.noise() * self.bound
         # print(action, action_noise)
         action += action_noise
-        action[0] = np.clip(action[0], -self.bound[0], self.bound[0])
-        action[1] = np.clip(action[1], -self.bound[1], self.bound[1])
+        action = np.clip(action, -self.bound, self.bound)
         self.run_step += 1
         return action
 

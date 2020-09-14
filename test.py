@@ -62,8 +62,8 @@
 from Utils import OUActionNoise,NormalActionNoise
 import matplotlib.pyplot as plt
 import numpy as np
-noise = NormalActionNoise(0*np.ones(1), 0.3*np.ones(1))   
-# noise = OUActionNoise(0*np.ones(1), 0.2 * np.ones(1))
+# noise = NormalActionNoise(0*np.ones(1), 0.3*np.ones(1))   
+noise = OUActionNoise(0*np.ones(1), 0.01 * np.ones(1))
 x = np.arange(1000)
 y = []
 for i in range(1000):
