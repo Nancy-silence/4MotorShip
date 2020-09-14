@@ -8,7 +8,7 @@ class MovePoint(object):
     def __init__(self, interval = 0.1, target_trajectory='linear', ud=0.3):
         self.interval = interval
         self.target_trajectory = target_trajectory
-        self.ud = 0.3
+        self.ud = ud
 
         if self.target_trajectory == 'linear':
             self.position = np.array([1, 5, 0])
@@ -36,6 +36,7 @@ class MovePoint(object):
 
         self.aim_his_pos = [list(self.position)]
         self.aim_his_v = [list(self.velocity)]
+        return self.position , self.velocity
 
     def observation(self):
         return self.position, self.velocity
@@ -46,6 +47,9 @@ class MovePoint(object):
 
     def next_point(self):
         return self.impl()
+    
+    def last_point(self):
+        return self.aim_his_pos[-2], self.aim_his_v[-2]
 
     def trajectory_point(self, x):
         if self.target_trajectory == 'linear':
@@ -73,7 +77,7 @@ class MovePoint(object):
     def func_sin(self):
         x = self.position[0] + self.ud * self.interval / math.sqrt(1 + np.power(math.cos(self.position[0]),2))
         y = self.position[1] + self.ud * self.interval * math.cos(self.position[0]) / math.sqrt(1 + np.power(math.cos(self.position[0]),2))
-        theta = math.atan2(math.cos(self.position[0]), 1)
+        theta = math.atan2(math.cos(x), 1)
         u = self.ud
         v = 0
         r = (theta - self.position[2]) / self.interval
