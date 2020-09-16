@@ -151,7 +151,7 @@ class ASVEnv(gym.Env):
         r4 = 0
         for i in range(2):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.25 * (np.exp(-std) - 1)
+            r4 += 0.5 * (np.exp(-std) - 1)
 
         torque_nearby = torque_his[-min(5, len(torque_his)):,:]
         r5 = 0
@@ -168,7 +168,7 @@ class ASVEnv(gym.Env):
                     er_sep = 1
                 else:
                     er_sep = diff_abs / diff_sum
-            temp = 0.25 * (np.exp(er_sep - 1) - 1)
+            temp = 0.2 * (np.exp(er_sep - 1) - 1)
             # print(f'torque:{torque_nearby_sep}, diff_abs:{diff_abs}, diff_sum:{diff_sum}, er_sep:{er_sep}, temp:{temp}')
             r5 += temp
 
