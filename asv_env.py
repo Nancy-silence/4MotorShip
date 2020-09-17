@@ -2,7 +2,6 @@
 # coding=utf-8
 
 import numpy as np
-from numpy.lib.function_base import diff
 import pandas as pd
 import math
 from asv_dynamic import ASV
@@ -124,11 +123,11 @@ class ASVEnv(gym.Env):
         if del_l > 0:
             r_l = np.power(2, -10 * l) - 1
         else:
-            r_l = -3
+            r_l = -1.5
 
         del_theta = abs(del_theta)
         if del_theta > math.pi/2:
-            r_theta = -np.exp(3*(del_theta-math.pi)) -1
+            r_theta = -np.exp(3*(del_theta-math.pi))
         else:
             r_theta = np.exp(-3 * del_theta)
 
@@ -137,7 +136,7 @@ class ASVEnv(gym.Env):
         # else:
         #     r_theta = math.cos(del_theta)
 
-        r1 = r_l + 0.5 * r_theta
+        r1 = r_l + 0.3 * r_theta
         # print(f'del_theta:{del_theta}, r_theta:{r_theta}, r_l:{r_l}, l:{l}')
 
         error_v = 5 * np.power(del_u,2) + 30 * np.power(del_v,2) + 0.1 * np.power(del_r,2)
@@ -151,35 +150,16 @@ class ASVEnv(gym.Env):
         r4 = 0
         for i in range(2):
             std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += 0.5 * (np.exp(-std) - 1)
-
-        torque_nearby = torque_his[-min(5, len(torque_his)):,:]
-        r5 = 0
-        for i in range(len(torque_nearby[0])):
-            torque_nearby_sep = torque_nearby[:,i]
-            diff_abs = abs(torque_nearby_sep[-1] - torque_nearby_sep[0])
-            diff_sum = 0
-            if len(torque_nearby_sep) == 1:
-                er_sep = 1
-            else:
-                for j in range(len(torque_nearby_sep)-1):
-                    diff_sum += abs(torque_nearby_sep[j+1] - torque_nearby_sep[j])
-                if diff_sum == 0:
-                    er_sep = 1
-                else:
-                    er_sep = diff_abs / diff_sum
-            temp = 0.2 * (np.exp(er_sep - 1) - 1)
-            # print(f'torque:{torque_nearby_sep}, diff_abs:{diff_abs}, diff_sum:{diff_sum}, er_sep:{er_sep}, temp:{temp}')
-            r5 += temp
+            r4 += np.exp(-std) - 1
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
-        r =r1 + r2 + r3 + r4 + r5
+        r = r1 + r2 + 0.5 * r3 + 0.2 * r4
 
         return r
 
     def get_reward_punish(self):
-        return -30
+        return -25
         
     def step(self, action):
         # 注意因为reset中已经让aim移动，因此aim永远是asv要追逐的点

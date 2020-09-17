@@ -38,7 +38,7 @@ def rl_loop(model_path=False):
         a_dim = env.action_space.shape[0]
         a_bound = env.action_bound
 
-        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=200000, MIN_MEM=1000, BATCH_SIZE=128, noise_type='Normal')
+        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=200000, MIN_MEM=1000, BATCH_SIZE=128)
         if model_path != False:
             START_EPISODE = agent.load(model_path)
         else:
