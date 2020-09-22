@@ -53,7 +53,7 @@ def rl_loop(model_path=False):
             cur_state = env.reset()
             cum_reward = 0
             noise_decay_rate = 0.3 * ((MAX_DECAYEP - e) / MAX_DECAYEP)
-            agent.build_noise(0, [max(noise_decay_rate, 0.008), max(noise_decay_rate, 0.006)])  # 根据给定的均值和decay的方差，初始化噪声发生器
+            agent.build_noise(0, [max(noise_decay_rate, 0.006), max(noise_decay_rate, 0.004)])  # 根据给定的均值和decay的方差，初始化噪声发生器
 
             for step in range(MAX_STEP):
 

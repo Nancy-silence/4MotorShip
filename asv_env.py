@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import gym
 from gym import spaces
 import time
+from scipy.signal import savgol_filter
 
 class ASVEnv(gym.Env):
     """
@@ -34,13 +35,14 @@ class ASVEnv(gym.Env):
         self.draw_ed = []
         self.draw_aim_theta = []
         self.draw_aim_v = []
+        # self.smooth_torque = []
 
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
-        self.action_bound = np.array([6, 3])
-        self.torque_bound = np.array([12, 6])
+        self.action_bound = np.array([4, 2])
+        self.torque_bound = np.array([8, 4])
         self.force_bound = 6
     
     def reset(self):
@@ -146,11 +148,33 @@ class ASVEnv(gym.Env):
         r3 =  np.exp(-sum_a/50) - 1
 
         torque_his = np.array(self.asv.asv_his_torque)
-        a_nearby = torque_his[-min(20, len(torque_his)):,:]
+        torque_nearby = torque_his[-min(20, len(torque_his)):,:]
         r4 = 0
-        for i in range(2):
-            std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
-            r4 += np.exp(-std) - 1
+        for i in range(len(torque_nearby[0])):
+            if (len(torque_nearby) < 3):
+                r4 += 0
+            else:
+                window_length = min((len(torque_nearby)-1) if len(torque_nearby)%2 == 0  else len(torque_nearby), 17) #保证窗口长度为小于数据量的奇数
+                poly_order = min(len(torque_nearby)-2, 3) # 保证阶数小于数据量
+                smooth_torque = savgol_filter(torque_nearby[:,i], window_length, poly_order)
+                smooth_torque = np.clip(smooth_torque, -self.torque_bound[i], self.torque_bound[i])
+                # if i == 0:
+                #     self.smooth_torque = smooth_torque
+                diff_sum = 0
+                for j in range(len(torque_nearby)):
+                    diff_sum += abs(torque_nearby[j,i] - smooth_torque[j])
+                # print(f'diff_sum : {diff_sum}')
+                r4 += np.exp(-diff_sum/2) - 1
+
+
+        # a_nearby = torque_his[-min(20, len(torque_his)):,:]
+        # r4 = 0
+        # for i in range(2):
+        #     std = np.nan_to_num(np.std(a_nearby[:,i], ddof=1))
+        #     # print(f'std : {std}')
+        #     r4 += np.exp(-std) - 1
+
+        # # print()
 
         # print(f'r1:{r1}, r2:{r2}, r3:{r3}, r4:{r4}')
 
@@ -220,6 +244,8 @@ class ASVEnv(gym.Env):
         motor_his = np.array(self.asv.asv_his_motor)
         torque_his = np.array(self.asv.asv_his_torque)
 
+        # smooth_torque = np.array(self.smooth_torque)
+
         plt.clf()
 
         # 绘制轨迹图
@@ -256,6 +282,7 @@ class ASVEnv(gym.Env):
         # 绘制torque图
         plt.subplot(3,2,4)
         plt.plot(range(0, len(torque_his)), torque_his[:,0], label='forward')
+        # plt.plot(range(len(torque_his) - len(smooth_torque), len(torque_his)), smooth_torque, label='forward smooth')
         plt.plot(range(0, len(torque_his)), torque_his[:,1], label='rotate')
         plt.title('torque')
         plt.legend()
@@ -279,6 +306,20 @@ class ASVEnv(gym.Env):
         plt.legend()
 
         plt.pause(0.1)
+
+    def render_end(self):
+        torque_his = np.array(self.asv.asv_his_torque)
+
+        # plt.clf()
+        # 绘制torque图
+        fix_torque1= savgol_filter(torque_his[:12,1], 11, 3)
+        # plt.plot(range(0, len(torque_his)), torque_his[:,0], label='forward')
+        # plt.plot(range(0, len(torque_his)), fix_torque1, label='forward_smooth')
+        plt.plot(range(0, 12), torque_his[:12,1], label='rotate')
+        plt.plot(range(0, 12), fix_torque1, label='rotate_smooth')
+        plt.title('torque')
+        plt.legend()
+        plt.show()
 
     def data_save_exl(self):
         aim_his_pos = np.array(self.aim.aim_his_pos)
