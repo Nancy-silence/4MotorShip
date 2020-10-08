@@ -163,7 +163,7 @@ class ASV(object):
     def reset_state(self, begin_pos):
         self.__position.x = begin_pos[0]   + np.random.rand() - 0.5
         self.__position.y = begin_pos[1]   + np.random.rand() - 0.5
-        self.__position.theta = begin_pos[2]   #+ np.random.uniform(-math.pi/2, math.pi/2)
+        self.__position.theta = begin_pos[2]   + np.random.uniform(-math.pi/2, math.pi/2)
         self.__velocity.u, self.__velocity.v, self.__velocity.r = 0, 0, 0
         self.motor = (0, 0, 0, 0)
         self.torque = np.array([0.,0.])

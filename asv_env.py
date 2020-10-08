@@ -39,7 +39,7 @@ class ASVEnv(gym.Env):
 
         plt.ion()
 
-        self.observation_space = spaces.Box(low=0, high=50, shape=(13,))
+        self.observation_space = spaces.Box(low=0, high=50, shape=(12,))
         self.action_space = spaces.Box(low=-6, high=6, shape=(2,))
         self.action_bound = np.array([4, 2])
         self.torque_bound = np.array([8, 4])
@@ -82,20 +82,7 @@ class ASVEnv(gym.Env):
         dx = self.getDx(asv_pos[0],asv_pos[1],aim_pos[0],aim_pos[1],aim_pos[2])
         dy = self.getDy(asv_pos[0],asv_pos[1],aim_pos[0],aim_pos[1],aim_pos[2])
 
-        target_theta = self.targetCouseAngle(asv_pos[0],asv_pos[1],self.radius,aim_pos[0],aim_pos[1],aim_pos[2])
-        asv_theta = asv_pos[2]
-        del_theta = (0 - np.sign(target_theta - asv_theta)) * (math.pi * 2 - abs(target_theta - asv_theta)) if \
-            abs(target_theta - asv_theta) > math.pi else target_theta - asv_theta
-        
-        # del_v = aim_v - asv_v
-
-        # temp = np.array([dx, dy, asv_pos[2], aim_pos[2]])
-        # # state = np.concatenate((temp, asv_v, del_v, self.asv.motor.data), axis=0)
-        # state = np.concatenate((temp, asv_v, aim_v, self.asv.motor.data), axis=0)
-
-        # del_theta_abs = math.atan2(aim_pos[1] - asv_pos[1], aim_pos[0] - asv_pos[0])
-
-        a = np.array([dx, dy, del_theta, asv_pos[2], aim_pos[2]])
+        a = np.array([dx, dy, asv_pos[2], aim_pos[2]])
         state = np.concatenate((a, asv_v, aim_v, self.asv.torque), axis=0)
         return state
 
@@ -155,7 +142,7 @@ class ASVEnv(gym.Env):
                 r4 += 0
             else:
                 window_length = min((len(torque_nearby)-1) if len(torque_nearby)%2 == 0  else len(torque_nearby), 17) #保证窗口长度为小于数据量的奇数
-                poly_order = min(len(torque_nearby)-2, 3) # 保证阶数小于数据量
+                poly_order = min(len(torque_nearby)-1, 2) # 保证阶数小于数据量
                 smooth_torque = savgol_filter(torque_nearby[:,i], window_length, poly_order)
                 smooth_torque = np.clip(smooth_torque, -self.torque_bound[i], self.torque_bound[i])
                 # if i == 0:
@@ -250,60 +237,116 @@ class ASVEnv(gym.Env):
 
         # 绘制轨迹图
         plt.subplot(3,2,1)
-        # 绘制aim
-        plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='aim')
         # 绘制asv
         # for i in range(len(asv_his_pos)):
         #     asv_his_pos[i][0] += np.random.normal(0, 0.02)
         #     asv_his_pos[i][1] += np.random.normal(0, 0.02)
 
-        plt.plot(*zip(*asv_his_pos[:,[0,1]]), 'b', label='asv')
-        # my_ticks = np.arange(-4, 8, 0.5)
-        # plt.yticks(my_ticks)
-        plt.title('x-y')
+        plt.plot(*zip(*asv_his_pos[:,[0,1]]), 'b', label='USV', linewidth=2)
+        # 绘制aim
+        plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='target trajectory', linewidth=3, linestyle='--')
+        my_ticks = np.arange(4.5, 6, 0.5)
+        plt.yticks(my_ticks)
+        plt.title('X-Y')
+        plt.xlabel('X[m]')
+        plt.ylabel('Y[m]')
+        plt.grid()#添加网格
         plt.legend()
 
         # 绘制误差ed图
         plt.subplot(3,2,2)
-        plt.plot(range(0, len(draw_ed)), draw_ed)
-        plt.title('ed')
+        plt.plot(np.arange(0, len(draw_ed) / 10, 0.1), draw_ed, linewidth=2)
+        plt.title('Distance Error')
+        plt.xlabel('Time[s]')
+        plt.ylabel('Distance Error[m]')
+        plt.grid()#添加网格
 
         # 绘制motor图
         plt.subplot(3,2,3)
-        plt.plot(range(0, len(motor_his)), motor_his[:,0], label='f1')
-        plt.plot(range(0, len(motor_his)), motor_his[:,1], label='f2')
-        plt.plot(range(0, len(motor_his)), motor_his[:,2], label='f3')
-        plt.plot(range(0, len(motor_his)), motor_his[:,3], label='f4')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,0], label='f1', linewidth=3,color='blue')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,1], label='f2', linewidth=3,color='orange')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,2], label='f3', linewidth=3,color='green')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,3], label='f4', linewidth=3,color='red')
         my_y_ticks = np.arange(-6, 7, 1)
         plt.yticks(my_y_ticks)
-        plt.title('motor')
+        plt.title('Motor Force4')
+        plt.xlabel('Time[s]')
+        plt.ylabel('Motor Force4')
+        plt.grid()#添加网格
         plt.legend()
+
+        # plt.subplot(3,2,3)
+        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,0], label='f1', linewidth=3,color='blue')
+        # my_y_ticks = np.arange(-6, 7, 1)
+        # plt.yticks(my_y_ticks)
+        # plt.title('Motor Force1')
+        # plt.xlabel('Time[s]')
+        # plt.ylabel('Motor Force1')
+        # plt.grid()#添加网格
+        # plt.subplot(3,2,4)
+        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,1], label='f2', linewidth=3,color='orange')
+        # my_y_ticks = np.arange(-6, 7, 1)
+        # plt.yticks(my_y_ticks)
+        # plt.title('Motor Force2')
+        # plt.xlabel('Time[s]')
+        # plt.ylabel('Motor Force2')
+        # plt.grid()#添加网格
+        # plt.subplot(3,2,5)
+        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,2], label='f3', linewidth=3,color='green')
+        # my_y_ticks = np.arange(-6, 7, 1)
+        # plt.yticks(my_y_ticks)
+        # plt.title('Motor Force3')
+        # plt.xlabel('Time[s]')
+        # plt.ylabel('Motor Force3')
+        # plt.grid()#添加网格
+        # plt.subplot(3,2,6)
+        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,3], label='f4', linewidth=3,color='red')
+        # my_y_ticks = np.arange(-6, 7, 1)
+        # plt.yticks(my_y_ticks)
+        # plt.title('Motor Force4')
+        # plt.xlabel('Time[s]')
+        # plt.ylabel('Motor Force4')
+        # plt.grid()#添加网格
+        # plt.legend()
+
+        # plt.tight_layout()
 
         # 绘制torque图
         plt.subplot(3,2,4)
-        plt.plot(range(0, len(torque_his)), torque_his[:,0], label='forward')
+        plt.plot(np.arange(0,len(torque_his) / 10, 0.1), torque_his[:,0], label='forward torque', linewidth=2)
         # plt.plot(range(len(torque_his) - len(smooth_torque), len(torque_his)), smooth_torque, label='forward smooth')
-        plt.plot(range(0, len(torque_his)), torque_his[:,1], label='rotate')
-        plt.title('torque')
+        plt.plot(np.arange(0,len(torque_his) / 10, 0.1), torque_his[:,1], label='rotate torque', linewidth=2)
+        plt.title('Torque')
+        plt.xlabel('Time[s]')
+        plt.ylabel('Torque')
+        plt.grid()#添加网格
         plt.legend()
 
         # 绘制theta对比图
         plt.subplot(3,2,5)
-        plt.plot(range(0, len(draw_aim_theta)), draw_aim_theta, label='aim')
-        plt.plot(range(0, len(asv_his_pos)), asv_his_pos[:,2], label='asv')
-        plt.title('theta')
+        plt.plot(np.arange(0,len(draw_aim_theta) / 10, 0.1), draw_aim_theta, label='target trajectory', linewidth=2, linestyle='--')
+        plt.plot(np.arange(0,(len(asv_his_pos-1)) / 10, 0.1), asv_his_pos[:,2], label='USV', linewidth=2)
+        plt.title('Heading Angle')
+        plt.xlabel('Time[s]')
+        plt.ylabel('Heading Angle[rad]')
+        plt.grid()#添加网格
         plt.legend()
 
         # 绘制asv的速度图
         plt.subplot(3,2,6)
-        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,0], label='u_asv')
-        plt.plot(range(0, len(draw_aim_v)), draw_aim_v[:,0], label='u_aim')
-        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,1], label='v_asv')
-        plt.plot(range(0, len(draw_aim_v)), draw_aim_v[:,1], label='v_aim')
-        plt.plot(range(0, len(asv_his_v)), asv_his_v[:,2], label='r_asv')
-        plt.plot(range(0, len(draw_aim_v)), draw_aim_v[:,2], label='r_aim')
-        plt.title('u,v,r')
+        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,0], label='u_USV', linewidth=3)
+        plt.plot(np.arange(0,len(draw_aim_v) / 10, 0.1), draw_aim_v[:,0], label='u_target', linewidth=3, linestyle='--')
+        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,1], label='v_USV', linewidth=3)
+        plt.plot(np.arange(0,len(draw_aim_v) / 10, 0.1), draw_aim_v[:,1], label='v_target', linewidth=3, linestyle='--')
+        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,2], label='r_USV', linewidth=3)
+        plt.plot(np.arange(0,len(draw_aim_v) / 10, 0.1), draw_aim_v[:,2], label='r_target', linewidth=3, linestyle='--')
+        plt.title('Velocity')
+        plt.xlabel('Time[s]')
+        plt.ylabel('Velocity[m/s]')
+        plt.grid()#添加网格
         plt.legend()
+
+        # plt.show()
 
         plt.pause(0.1)
 
