@@ -160,7 +160,7 @@ dmypy.json
 # my ignore define
 runs/
 c_env/
-*/nohup.out
+nohup.out
 */.log
 .vscode/
 .idea/

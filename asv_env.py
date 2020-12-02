@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import gym
 from gym import spaces
 import time
+import os
 from scipy.signal import savgol_filter
 
 class ASVEnv(gym.Env):
@@ -32,11 +33,6 @@ class ASVEnv(gym.Env):
         self.factor12 = self.asv.asv_a / (np.power(self.asv.asv_a,2) + np.power(self.asv.asv_b,2))
         self.factor34 = self.asv.asv_b / (np.power(self.asv.asv_a,2) + np.power(self.asv.asv_b,2))
 
-        self.draw_ed = []
-        self.draw_aim_theta = []
-        self.draw_aim_v = []
-        # self.smooth_torque = []
-
         plt.ion()
 
         self.observation_space = spaces.Box(low=0, high=50, shape=(12,))
@@ -50,21 +46,17 @@ class ASVEnv(gym.Env):
             将目标点重置到(0, 0)之后，获取下一个目标点
             将船只重置为(0, 0)
         """
-        self.aim.reset()
-        begin_pos, begin_v= self.aim.observation()
-        asv_pos, asv_v = self.asv.reset_state(begin_pos)
-        self.draw_aim_theta.append(begin_pos[2])
-        self.draw_aim_v.append(begin_v)
-        self.draw_ed.append(math.sqrt(np.sum(np.power(asv_pos[0:2]-begin_pos[0:2],2))))
+        asv_pos, asv_v = self.asv.reset_state()       #初始化船位置速度
+        # 确定目标轨迹起点：船初始x,y位置 + 0.5范围内随机 
+        aim_start_pos = np.array([0,0,0])
+        aim_start_pos[0] = asv_pos[0] + np.random.rand() - 0.5
+        aim_start_pos[1] = asv_pos[1] + np.random.rand() - 0.5
+        # self.aim.reset(aim_start_pos)
+        self.aim.reset(asv_pos)
         self.aim.next_point()
-    
-        plt.ioff()
-        plt.clf()
-        plt.ion()
 
-        self.draw_ed = []
-        self.draw_aim_theta = []
-        self.draw_aim_v = []
+        fig = plt.figure()
+        plt.ion()
         return self.get_state()
 
     def get_state(self):
@@ -202,11 +194,6 @@ class ASVEnv(gym.Env):
             reward = self.get_reward_punish()
         else:
             reward = self.get_reward()
-        
-        # draw数据准备
-        self.draw_aim_theta.append(aim_pos[2])
-        self.draw_aim_v.append(aim_v)
-        self.draw_ed.append(math.sqrt(np.sum(np.power(cur_asv_pos[0:2]-aim_pos[0:2],2))))
 
         # 计算完奖励之后，可以移动aim坐标
         while True:
@@ -223,30 +210,28 @@ class ASVEnv(gym.Env):
 
     def render(self):
         aim_his_pos = np.array(self.aim.aim_his_pos)
-        draw_aim_theta = np.array(self.draw_aim_theta)
-        draw_aim_v = np.array(self.draw_aim_v)
-        draw_ed = np.array(self.draw_ed)
+        aim_his_v = np.array(self.aim.aim_his_v)
         asv_his_pos = np.array(self.asv.asv_his_pos)
         asv_his_v = np.array(self.asv.asv_his_v)
         motor_his = np.array(self.asv.asv_his_motor)
         torque_his = np.array(self.asv.asv_his_torque)
+        ed = []
 
-        # smooth_torque = np.array(self.smooth_torque)
+        for i in range(len(aim_his_pos)-1):
+            # print(len(aim_his_pos))
+            # print(len(asv_his_pos))
+            x_error = pow(aim_his_pos[i][0] - asv_his_pos[i+1][0], 2)
+            y_error = pow(aim_his_pos[i][1] - asv_his_pos[i+1][1], 2)
+            error = np.sqrt(x_error + y_error)
+            ed.append(error)
 
         plt.clf()
 
         # 绘制轨迹图
         plt.subplot(3,2,1)
-        # 绘制asv
-        # for i in range(len(asv_his_pos)):
-        #     asv_his_pos[i][0] += np.random.normal(0, 0.02)
-        #     asv_his_pos[i][1] += np.random.normal(0, 0.02)
-
         plt.plot(*zip(*asv_his_pos[:,[0,1]]), 'b', label='USV', linewidth=2)
         # 绘制aim
-        plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='target trajectory', linewidth=3, linestyle='--')
-        my_ticks = np.arange(4.5, 6, 0.5)
-        plt.yticks(my_ticks)
+        plt.plot(*zip(*aim_his_pos[:,[0,1]]), 'y', label='aim', linewidth=2, linestyle='--')
         plt.title('X-Y')
         plt.xlabel('X[m]')
         plt.ylabel('Y[m]')
@@ -255,7 +240,7 @@ class ASVEnv(gym.Env):
 
         # 绘制误差ed图
         plt.subplot(3,2,2)
-        plt.plot(np.arange(0, len(draw_ed) / 10, 0.1), draw_ed, linewidth=2)
+        plt.plot(np.arange(0, len(ed) / 10, 0.1), ed, linewidth=2)
         plt.title('Distance Error')
         plt.xlabel('Time[s]')
         plt.ylabel('Distance Error[m]')
@@ -263,10 +248,10 @@ class ASVEnv(gym.Env):
 
         # 绘制motor图
         plt.subplot(3,2,3)
-        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,0], label='f1', linewidth=3,color='blue')
-        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,1], label='f2', linewidth=3,color='orange')
-        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,2], label='f3', linewidth=3,color='green')
-        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,3], label='f4', linewidth=3,color='red')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,0], label='f1', linewidth=2,color='blue')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,1], label='f2', linewidth=2,color='orange')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,2], label='f3', linewidth=2,color='green')
+        plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,3], label='f4', linewidth=2,color='red')
         my_y_ticks = np.arange(-6, 7, 1)
         plt.yticks(my_y_ticks)
         plt.title('Motor Force4')
@@ -275,47 +260,11 @@ class ASVEnv(gym.Env):
         plt.grid()#添加网格
         plt.legend()
 
-        # plt.subplot(3,2,3)
-        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,0], label='f1', linewidth=3,color='blue')
-        # my_y_ticks = np.arange(-6, 7, 1)
-        # plt.yticks(my_y_ticks)
-        # plt.title('Motor Force1')
-        # plt.xlabel('Time[s]')
-        # plt.ylabel('Motor Force1')
-        # plt.grid()#添加网格
-        # plt.subplot(3,2,4)
-        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,1], label='f2', linewidth=3,color='orange')
-        # my_y_ticks = np.arange(-6, 7, 1)
-        # plt.yticks(my_y_ticks)
-        # plt.title('Motor Force2')
-        # plt.xlabel('Time[s]')
-        # plt.ylabel('Motor Force2')
-        # plt.grid()#添加网格
-        # plt.subplot(3,2,5)
-        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,2], label='f3', linewidth=3,color='green')
-        # my_y_ticks = np.arange(-6, 7, 1)
-        # plt.yticks(my_y_ticks)
-        # plt.title('Motor Force3')
-        # plt.xlabel('Time[s]')
-        # plt.ylabel('Motor Force3')
-        # plt.grid()#添加网格
-        # plt.subplot(3,2,6)
-        # plt.plot(np.arange(0, len(motor_his) / 10, 0.1), motor_his[:,3], label='f4', linewidth=3,color='red')
-        # my_y_ticks = np.arange(-6, 7, 1)
-        # plt.yticks(my_y_ticks)
-        # plt.title('Motor Force4')
-        # plt.xlabel('Time[s]')
-        # plt.ylabel('Motor Force4')
-        # plt.grid()#添加网格
-        # plt.legend()
-
-        # plt.tight_layout()
-
         # 绘制torque图
         plt.subplot(3,2,4)
-        plt.plot(np.arange(0,len(torque_his) / 10, 0.1), torque_his[:,0], label='forward torque', linewidth=2)
+        plt.plot(np.arange(0,len(torque_his) / 10, 0.1), torque_his[:,0], label='forward', linewidth=2)
         # plt.plot(range(len(torque_his) - len(smooth_torque), len(torque_his)), smooth_torque, label='forward smooth')
-        plt.plot(np.arange(0,len(torque_his) / 10, 0.1), torque_his[:,1], label='rotate torque', linewidth=2)
+        plt.plot(np.arange(0,len(torque_his) / 10, 0.1), torque_his[:,1], label='rotate', linewidth=2)
         plt.title('Torque')
         plt.xlabel('Time[s]')
         plt.ylabel('Torque')
@@ -324,8 +273,8 @@ class ASVEnv(gym.Env):
 
         # 绘制theta对比图
         plt.subplot(3,2,5)
-        plt.plot(np.arange(0,len(draw_aim_theta) / 10, 0.1), draw_aim_theta, label='target trajectory', linewidth=2, linestyle='--')
-        plt.plot(np.arange(0,(len(asv_his_pos-1)) / 10, 0.1), asv_his_pos[:,2], label='USV', linewidth=2)
+        plt.plot(np.arange(0,(len(aim_his_pos)-1) / 10, 0.1), aim_his_pos[:-1,2], label='aim', linewidth=2, linestyle='--')
+        plt.plot(np.arange(0,(len(aim_his_pos)-1) / 10, 0.1), asv_his_pos[1:,2], label='USV', linewidth=2)
         plt.title('Heading Angle')
         plt.xlabel('Time[s]')
         plt.ylabel('Heading Angle[rad]')
@@ -334,19 +283,17 @@ class ASVEnv(gym.Env):
 
         # 绘制asv的速度图
         plt.subplot(3,2,6)
-        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,0], label='u_USV', linewidth=3)
-        plt.plot(np.arange(0,len(draw_aim_v) / 10, 0.1), draw_aim_v[:,0], label='u_target', linewidth=3, linestyle='--')
-        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,1], label='v_USV', linewidth=3)
-        plt.plot(np.arange(0,len(draw_aim_v) / 10, 0.1), draw_aim_v[:,1], label='v_target', linewidth=3, linestyle='--')
-        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,2], label='r_USV', linewidth=3)
-        plt.plot(np.arange(0,len(draw_aim_v) / 10, 0.1), draw_aim_v[:,2], label='r_target', linewidth=3, linestyle='--')
+        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,0], label='u_USV', linewidth=2)
+        plt.plot(np.arange(0,len(aim_his_v) / 10, 0.1), aim_his_v[:,0], label='u_target', linewidth=2, linestyle='--')
+        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,1], label='v_USV', linewidth=2)
+        plt.plot(np.arange(0,len(aim_his_v) / 10, 0.1), aim_his_v[:,1], label='v_target', linewidth=2, linestyle='--')
+        plt.plot(np.arange(0,len(asv_his_v) / 10, 0.1), asv_his_v[:,2], label='r_USV', linewidth=2)
+        plt.plot(np.arange(0,len(aim_his_v) / 10, 0.1), aim_his_v[:,2], label='r_target', linewidth=2, linestyle='--')
         plt.title('Velocity')
         plt.xlabel('Time[s]')
         plt.ylabel('Velocity[m/s]')
         plt.grid()#添加网格
         plt.legend()
-
-        # plt.show()
 
         plt.pause(0.1)
 
@@ -369,19 +316,21 @@ class ASVEnv(gym.Env):
         aim_his_v = np.array(self.aim.aim_his_v)
         asv_his_pos = np.array(self.asv.asv_his_pos)
         asv_his_v = np.array(self.asv.asv_his_v)
-        action_his = np.array(self.asv.asv_his_motor)
         aim_s = np.hstack((aim_his_pos, aim_his_v))
         asv_s = np.hstack((asv_his_pos, asv_his_v))
-        a = np.array(self.asv.asv_his_motor)
+        motor = np.array(self.asv.asv_his_motor)
+        torque = np.array(self.asv.asv_his_torque)
 
         aim_s_data = pd.DataFrame({'x':aim_s[:,0],'y':aim_s[:,1],'theta':aim_s[:,2],'u':aim_s[:,3],'v':aim_s[:,4],'r':aim_s[:,5]})
         asv_s_data = pd.DataFrame({'x':asv_s[:,0],'y':asv_s[:,1],'theta':asv_s[:,2],'u':asv_s[:,3],'v':asv_s[:,4],'r':asv_s[:,5]})
-        a_data = pd.DataFrame({'f1':a[:,0],'f2':a[:,1],'f3':a[:,2],'f4':a[:,3]})
+        motor_data = pd.DataFrame({'f1':motor[:,0],'f2':motor[:,1],'f3':motor[:,2],'f4':motor[:,3]})
+        torque_data = pd.DataFrame({'forward':torque[:,0],'backward':torque[:,1]})
 
-        writer = pd.ExcelWriter('State-Action.xlsx')
+        writer = pd.ExcelWriter(os.path.dirname(os.path.abspath(__file__)) + '/save_data/' + time.strftime("%Y%m%d %H%M%S", time.localtime()) + '.xlsx')
         aim_s_data.to_excel(writer, 'aim state', float_format='%.5f')
         asv_s_data.to_excel(writer, 'asv state', float_format='%.5f')
-        a_data.to_excel(writer, 'action', float_format='%.5f')
+        motor_data.to_excel(writer, 'motor', float_format='%.5f')
+        torque_data.to_excel(writer, 'torque', float_format='%.5f')
         writer.save()
         writer.close()
 
