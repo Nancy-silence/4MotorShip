@@ -47,12 +47,13 @@ class ASVEnv(gym.Env):
             将船只重置为(0, 0)
         """
         asv_pos, asv_v = self.asv.reset_state()       #初始化船位置速度
-        # 确定目标轨迹起点：船初始x,y位置 + 0.5范围内随机 
+        # 训练时确定目标轨迹起点：船初始x,y位置 + 0.5范围内随机 
         aim_start_pos = np.array([0,0,0])
         aim_start_pos[0] = asv_pos[0] + np.random.rand() - 0.5
         aim_start_pos[1] = asv_pos[1] + np.random.rand() - 0.5
-        # self.aim.reset(aim_start_pos)
-        self.aim.reset(asv_pos)
+        self.aim.reset(aim_start_pos)
+        # 测试时确定目标轨迹起点：船初始x,y位置
+        # self.aim.reset(asv_pos)
         self.aim.next_point()
 
         fig = plt.figure()
