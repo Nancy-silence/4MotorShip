@@ -162,19 +162,19 @@ class ASV(object):
 
     def reset_state(self):
         # 船初始位置随机
-        # self.__position.x =  np.random.uniform(-5,5)
-        # self.__position.y = np.random.uniform(-5,5)
-        # self.__position.theta = np.random.uniform(-math.pi/2, math.pi/2)
-        # self.__velocity.u = np.random.uniform(-0.1,0.1)
-        # self.__velocity.v = np.random.uniform(-0.1,0.1)
-        # self.__velocity.r = np.random.uniform(-0.1,0.1)
+        self.__position.x =  np.random.uniform(-5,5)
+        self.__position.y = np.random.uniform(-5,5)
+        self.__position.theta = np.random.uniform(-math.pi/2, math.pi/2)
+        self.__velocity.u = np.random.uniform(-0.1,0.1)
+        self.__velocity.v = np.random.uniform(-0.1,0.1)
+        self.__velocity.r = np.random.uniform(-0.1,0.1)
 
-        self.__position.x =  0.67623
-        self.__position.y = -2.45472
-        self.__position.theta = 0.43803
-        self.__velocity.u = -0.04537
-        self.__velocity.v = 0.05256
-        self.__velocity.r = 0.0613
+        # self.__position.x =  0.67623
+        # self.__position.y = -2.45472
+        # self.__position.theta = 0.43803
+        # self.__velocity.u = -0.04537
+        # self.__velocity.v = 0.05256
+        # self.__velocity.r = 0.0613
 
         self.motor = (0, 0, 0, 0)
         self.torque = np.array([0., 0.])

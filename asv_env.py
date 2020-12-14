@@ -327,6 +327,7 @@ class ASVEnv(gym.Env):
         torque_data = pd.DataFrame({'forward':torque[:,0],'backward':torque[:,1]})
 
         writer = pd.ExcelWriter(os.path.dirname(os.path.abspath(__file__)) + '/save_data/' + time.strftime("%Y%m%d %H%M%S", time.localtime()) + '.xlsx')
+        # writer = pd.ExcelWriter('State-Action.xlsx')
         aim_s_data.to_excel(writer, 'aim state', float_format='%.5f')
         asv_s_data.to_excel(writer, 'asv state', float_format='%.5f')
         motor_data.to_excel(writer, 'motor', float_format='%.5f')
