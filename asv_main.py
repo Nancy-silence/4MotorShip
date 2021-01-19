@@ -18,7 +18,7 @@ class GracefulExitException(Exception):
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 MAX_EPISODE = 1000000
-MAX_DECAYEP = 2000
+MAX_DECAYEP = 3000
 MAX_STEP = 300
 
 LR_A = 0.0001
@@ -36,9 +36,9 @@ def rl_loop(model_path=False):
         env = ASVEnv(target_trajectory='func_sin')
         s_dim = env.observation_space.shape[0]
         a_dim = env.action_space.shape[0]
-        a_bound = env.action_space.high
+        a_bound = env.action_bound
 
-        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=100000, MIN_MEM=1000, BATCH_SIZE=128)
+        agent = DDPG(s_dim, a_dim, a_bound, lr_a=LR_A, lr_c=LR_C, gamma=0.95, MAX_MEM=200000, MIN_MEM=1000, BATCH_SIZE=128)
         if model_path != False:
             START_EPISODE = agent.load(model_path)
         else:
@@ -52,8 +52,8 @@ def rl_loop(model_path=False):
         for e in range(START_EPISODE, MAX_EPISODE):
             cur_state = env.reset()
             cum_reward = 0
-            noise_decay_rate = max(0.3 * ((MAX_DECAYEP - e) / MAX_DECAYEP), 0.01)
-            agent.build_noise(0, noise_decay_rate)  # 根据给定的均值和decay的方差，初始化噪声发生器
+            noise_decay_rate = 0.3 * ((MAX_DECAYEP - e) / MAX_DECAYEP)
+            agent.build_noise(0, [max(noise_decay_rate, 0.006), max(noise_decay_rate, 0.004)])  # 根据给定的均值和decay的方差，初始化噪声发生器
 
             for step in range(MAX_STEP):
 

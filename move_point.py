@@ -11,28 +11,21 @@ class MovePoint(object):
         self.ud = ud
 
         if self.target_trajectory == 'linear':
-            self.position = np.array([1, 5, 0])
+            self.position_iter = np.array([0, 0, 0])
         elif self.target_trajectory == 'func_sin':
-            self.position = np.array([0, 4, math.pi/4])
+            self.position_iter = np.array([0, 0, math.pi/4])
         else:
             #TODO:异常处理
             pass
-        self.velocity = np.array([self.ud, 0, 0])
-
-        self.aim_his_pos = [self.position]
-        self.aim_his_v = [self.velocity]
+        self.velocity_iter = np.array([self.ud, 0, 0])
 
         self.impl = getattr(self, target_trajectory)
 
-    def reset(self):
-        if self.target_trajectory == 'linear':
-            self.position = np.array([1, 5, 0])
-        elif self.target_trajectory == 'func_sin':
-            self.position = np.array([0, 4, math.pi/4])
-        else:
-            #TODO:异常处理
-            pass
-        self.velocity = np.array([self.ud, 0, 0])
+    def reset(self, pos):
+        self.start_pos = pos      # ASV起始位置（x,y,fai)
+        self.start_pos[2] = 0     # 目标轨迹起始点设置为(x,y,0)
+        self.position = self.start_pos + self.position_iter
+        self.velocity = self.velocity_iter
 
         self.aim_his_pos = [list(self.position)]
         self.aim_his_v = [list(self.velocity)]
@@ -40,10 +33,6 @@ class MovePoint(object):
 
     def observation(self):
         return self.position, self.velocity
-
-    # @property
-    # def position(self):
-    #     return self.position
 
     def next_point(self):
         return self.impl()
@@ -60,9 +49,11 @@ class MovePoint(object):
             return
 
     def linear(self):
-        x = self.position[0] + self.ud * self.interval
-        self.position = np.array([x, self.position[1], self.position[2]])
-
+        x = self.position_iter[0] + self.ud * self.interval
+        self.position_iter = np.array([x, self.position_iter[1], self.position_iter[2]])
+       
+        self.position = self.start_pos + self.position_iter
+        self.velocity = self.velocity_iter
         self.aim_his_pos.append(list(self.position))
         self.aim_his_v.append(list(self.velocity))
         return self.position, self.velocity
@@ -75,15 +66,17 @@ class MovePoint(object):
         return pos
 
     def func_sin(self):
-        x = self.position[0] + self.ud * self.interval / math.sqrt(1 + np.power(math.cos(self.position[0]),2))
-        y = self.position[1] + self.ud * self.interval * math.cos(self.position[0]) / math.sqrt(1 + np.power(math.cos(self.position[0]),2))
+        x = self.position_iter[0] + self.ud * self.interval / math.sqrt(1 + np.power(math.cos(self.position_iter[0]),2))
+        y = self.position_iter[1] + self.ud * self.interval * math.cos(self.position_iter[0]) / math.sqrt(1 + np.power(math.cos(self.position_iter[0]),2))
         theta = math.atan2(math.cos(x), 1)
         u = self.ud
         v = 0
-        r = (theta - self.position[2]) / self.interval
-        self.position = np.array([x, y, theta])
-        self.velocity = np.array([u, v, r])
+        r = (theta - self.position_iter[2]) / self.interval
+        self.position_iter = np.array([x, y, theta])
+        self.velocity_iter = np.array([u, v, r])
 
+        self.position = self.start_pos + self.position_iter
+        self.velocity = self.velocity_iter
         self.aim_his_pos.append(list(self.position))
         self.aim_his_v.append(list(self.velocity))
         return self.position , self.velocity

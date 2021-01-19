@@ -160,16 +160,27 @@ class ASV(object):
     def motor(self, motor):
         self.__motor.a1, self.__motor.a2, self.__motor.a3, self.__motor.a4 = motor 
 
-    def reset_state(self, begin_pos):
-        self.__position.x = begin_pos[0]  #+ np.random.rand() - 0.5
-        self.__position.y = begin_pos[1]  #+ np.random.rand() - 0.5
-        self.__position.theta = begin_pos[2]  #+ np.random.uniform(-math.pi/2, math.pi/2)
-        self.__velocity.u, self.__velocity.v, self.__velocity.r = 0, 0, 0
-        self.motor = (0, 0, 0, 0)
-        self.torque = np.array([0.,0.])
+    def reset_state(self):
+        # 船初始位置随机
+        self.__position.x =  np.random.uniform(-5,5)
+        self.__position.y = np.random.uniform(-5,5)
+        self.__position.theta = np.random.uniform(-math.pi/2, math.pi/2)
+        self.__velocity.u = np.random.uniform(-0.1,0.1)
+        self.__velocity.v = np.random.uniform(-0.1,0.1)
+        self.__velocity.r = np.random.uniform(-0.1,0.1)
 
-        self.asv_his_pos = [list(self.__position.data)]
-        self.asv_his_v = [list(self.__velocity.data)]
+        # self.__position.x =  0.67623
+        # self.__position.y = -2.45472
+        # self.__position.theta = 0.43803
+        # self.__velocity.u = -0.04537
+        # self.__velocity.v = 0.05256
+        # self.__velocity.r = 0.0613
+
+        self.motor = (0, 0, 0, 0)
+        self.torque = np.array([0., 0.])
+
+        self.asv_his_pos = [list(self.__position.data), list(self.__position.data)]
+        self.asv_his_v = [list(self.__velocity.data), list(self.__velocity.data)]
         self.asv_his_motor = []
         self.asv_his_torque = []
 
