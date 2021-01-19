@@ -58,6 +58,10 @@ class ASVEnv(gym.Env):
 
         fig = plt.figure()
         plt.ion()
+
+        self.draw_ed = []
+        self.draw_aim_theta = []
+        self.draw_aim_v = []
         return self.get_state()
 
     def get_state(self):
